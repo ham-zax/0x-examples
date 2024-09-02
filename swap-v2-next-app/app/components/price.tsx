@@ -1,11 +1,12 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { formatUnits, parseUnits } from "ethers";
+import { toUnits, toTokens } from "thirdweb";
 import { ConnectButton, useActiveAccount, useActiveWalletChain, useEstimateGas } from "thirdweb/react";
 import {
   getContract,
   readContract,
   prepareContractCall,
   sendTransaction,
+  waitForReceipt,
 } from "thirdweb";
 import { Address } from "viem";
 import {
@@ -22,7 +23,7 @@ import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
 import { client } from "../providers";
-import { erc20Abi } from "../../src/utils/erc20abi"; 
+import { erc20Abi } from "../../src/utils/erc20abi";
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
     return "weth";
@@ -81,22 +82,22 @@ export default function PriceView({
   const buyTokenDecimals = buyTokenObject.decimals;
   const sellTokenAddress = sellTokenObject.address;
 
-  const parsedSellAmount =
-    sellAmount && tradeDirection === "sell"
-      ? parseUnits(sellAmount, sellTokenDecimals).toString()
-      : undefined;
+  // Near the top of your component, where you define parsedSellAmount
+  const parsedSellAmount = sellAmount && tradeDirection === "sell"
+    ? toUnits(sellAmount, sellTokenDecimals)
+    : undefined;
 
   const parsedBuyAmount =
     buyAmount && tradeDirection === "buy"
-      ? parseUnits(buyAmount, buyTokenDecimals).toString()
+      ? toUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
 
   const { mutate: estimateGas } = useEstimateGas();
 
   const fetchBalance = async () => {
     if (activeAccount?.address && sellTokenObject.address && activeChain) {
-      const contract = getContract({ 
-        address: sellTokenObject.address, 
+      const contract = getContract({
+        address: sellTokenObject.address,
         abi: erc20Abi,
         client,
         chain: activeChain
@@ -125,7 +126,7 @@ export default function PriceView({
 
   const inSufficientBalance =
     balance && sellAmount
-      ? parseUnits(sellAmount, sellTokenDecimals) > balance
+      ? toUnits(sellAmount, sellTokenDecimals) > balance
       : true;
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
@@ -153,7 +154,7 @@ export default function PriceView({
         setError([]);
       }
       if (data.buyAmount) {
-        setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals));
+        setBuyAmount(toTokens(data.buyAmount, buyTokenDecimals));
         setPrice(data);
       }
     }
@@ -314,7 +315,7 @@ export default function PriceView({
             {price && price.fees.integratorFee.amount
               ? "Affiliate Fee: " +
               Number(
-                formatUnits(
+                toTokens(
                   BigInt(price.fees.integratorFee.amount),
                   MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
                 )
@@ -360,53 +361,74 @@ export default function PriceView({
 
     // Read allowance
     const [allowance, setAllowance] = useState<bigint>(BigInt(0));
+
+    const fetchAllowance = async () => {
+      if (taker && spender && sellTokenAddress && activeChain) {
+        const contract = getContract({
+          address: sellTokenAddress,
+          abi: erc20Abi,
+          client,
+          chain: activeChain
+        });
+        try {
+          const result = await readContract({
+            contract,
+            method: "allowance",
+            params: [taker, spender],
+          });
+          setAllowance(BigInt(result));
+        } catch (error) {
+          console.error("Error fetching allowance:", error);
+          setAllowance(BigInt(0));
+        }
+      } else {
+        setAllowance(BigInt(0));
+      }
+    };
     useEffect(() => {
-      const fetchAllowance = async () => {
-        if (taker && spender && sellTokenAddress && activeChain) {
-          const contract = getContract({ 
-            address: sellTokenAddress, 
+      if (taker && spender && sellTokenAddress) {
+        fetchAllowance();
+      }
+    }, [taker, spender, sellTokenAddress]);
+    // Send transaction for approval
+
+    const [isApproving, setIsApproving] = useState(false);
+
+    const handleApprove = async () => {
+      setIsApproving(true);
+      try {
+        if (activeChain) {
+          const contract = getContract({
+            address: sellTokenAddress,
             abi: erc20Abi,
             client,
             chain: activeChain
           });
-          try {
-            const result = await readContract({
-              contract,
-              method: "allowance", // Changed from functionName to method
-              params: [taker, spender], // Changed from args to params
-            });
-            setAllowance(BigInt(result));
-          } catch (error) {
-            console.error("Error fetching allowance:", error);
-            setAllowance(BigInt(0));
+
+          const preparedCall = await prepareContractCall({
+            contract,
+            method: "approve",
+            params: [spender, MAX_ALLOWANCE],
+          });
+
+          if (!activeAccount) {
+            throw new Error("No active account");
           }
-        } else {
-          setAllowance(BigInt(0));
+
+          const result = await sendTransaction({
+            transaction: preparedCall,
+            account: activeAccount,
+          });
+
+          console.log("Approval transaction sent:", result.transactionHash);
+
+          // Wait for transaction confirmation
+          const receipt = await waitForReceipt(result);
+          console.log("Approval transaction confirmed:", receipt);
+
+          // Refetch allowance after approval
+          await fetchAllowance();
         }
-      };
-      fetchAllowance();
-    }, [taker, spender, sellTokenAddress]);
-
-    // Send transaction for approval
-
-    const [isApproving, setIsApproving] = useState(false);
-    const handleApprove = async () => {
-      setIsApproving(true);
-      try {
-        const contract = getContract({ address: sellTokenAddress, abi: erc20Abi });
-        const preparedCall = await prepareContractCall({
-          contract,
-          functionName: "approve",
-          args: [spender, MAX_ALLOWANCE],
-        });
-        await sendTransaction(preparedCall);
-        // Refetch allowance after approval
-        const newAllowance = await readContract({
-          contract,
-          functionName: "allowance",
-          args: [taker, spender],
-        });
-        setAllowance(BigInt(newAllowance));
       } catch (error) {
         console.error("Approval failed:", error);
       } finally {
@@ -414,18 +436,16 @@ export default function PriceView({
       }
     };
 
-    if (allowance === BigInt(0)) {
+    if (parsedSellAmount && allowance < parsedSellAmount) {
       return (
-        <>
-          <button
-            type="button"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-            onClick={handleApprove}
-            disabled={isApproving}
-          >
-            {isApproving ? "Approving…" : "Approve"}
-          </button>
-        </>
+        <button
+          type="button"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+          onClick={handleApprove}
+          disabled={isApproving}
+        >
+          {isApproving ? "Approving…" : "Approve"}
+        </button>
       );
     }
 
@@ -433,14 +453,12 @@ export default function PriceView({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => {
-          // fetch data, when finished, show quote view
-          onClick();
-        }}
+        onClick={onClick}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
+
     );
   }
 }
