@@ -21,6 +21,10 @@ import {
 } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
+import { createThirdwebClient } from "thirdweb";
+import { createWallet, inAppWallet } from "thirdweb/wallets";
+import { walletConnect } from "wagmi/connectors";
+import { ThirdwebProvider } from "thirdweb/react";
 
 const { wallets } = getDefaultWallets();
 
@@ -51,9 +55,39 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>{children}</RainbowKitProvider>{" "}
+          <RainbowKitProvider>
+            <ThirdwebProvider>
+              {children}
+            </ThirdwebProvider>
+          </RainbowKitProvider>{" "}
         </QueryClientProvider>
       </WagmiProvider>
     </div>
   );
 }
+
+const clientId = createThirdwebClient({
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID as string,
+});
+if (!clientId) {
+  throw new Error("No client ID provided");
+}
+
+export const client = clientId;
+
+const thirdwebWallet = [
+  createWallet("io.metamask"),
+  inAppWallet({
+    auth: {
+      options: [
+        "email",
+        "google",
+        "apple",
+        "facebook",
+        "phone",
+      ],
+    },
+  }),
+];
+
+export const thirdwebWallets = thirdwebWallet;

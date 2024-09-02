@@ -1,14 +1,13 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useEffect, useState, ChangeEvent } from "react";
 import { formatUnits, parseUnits } from "ethers";
+import { ConnectButton, useActiveAccount, useActiveWalletChain, useEstimateGas } from "thirdweb/react";
 import {
-  useReadContract,
-  useBalance,
-  useSimulateContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { erc20Abi, Address } from "viem";
+  getContract,
+  readContract,
+  prepareContractCall,
+  sendTransaction,
+} from "thirdweb";
+import { Address } from "viem";
 import {
   PERMIT2_ADDRESS,
   MAINNET_TOKENS,
@@ -22,7 +21,8 @@ import { permit2Abi } from "../../src/utils/permit2abi";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
-
+import { client } from "../providers";
+import { erc20Abi } from "../../src/utils/erc20abi"; 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
     return "weth";
@@ -48,6 +48,9 @@ export default function PriceView({
   const [buyAmount, setBuyAmount] = useState("");
   const [tradeDirection, setTradeDirection] = useState("sell");
   const [error, setError] = useState([]);
+
+  const activeAccount = useActiveAccount();
+  const activeChain = useActiveWalletChain();
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSellToken(e.target.value);
@@ -88,6 +91,42 @@ export default function PriceView({
       ? parseUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
 
+  const { mutate: estimateGas } = useEstimateGas();
+
+  const fetchBalance = async () => {
+    if (activeAccount?.address && sellTokenObject.address && activeChain) {
+      const contract = getContract({ 
+        address: sellTokenObject.address, 
+        abi: erc20Abi,
+        client,
+        chain: activeChain
+      });
+      try {
+        const balance = await readContract({
+          contract,
+          method: "balanceOf", // Changed from functionName to method
+          params: [activeAccount.address as Address], // Changed from args to params
+        });
+        return BigInt(balance);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+        return BigInt(0);
+      }
+    }
+    return BigInt(0);
+  };
+
+  const [balance, setBalance] = useState<bigint>(BigInt(0));
+  useEffect(() => {
+    fetchBalance().then(setBalance);
+  }, [activeAccount, sellTokenObject.address]);
+
+  console.log("taker sellToken balance: ", balance);
+
+  const inSufficientBalance =
+    balance && sellAmount
+      ? parseUnits(sellAmount, sellTokenDecimals) > balance
+      : true;
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
     const params = {
@@ -135,17 +174,14 @@ export default function PriceView({
   ]);
 
   // Hook for fetching balance information for specified token for a specific taker address
-  const { data, isError, isLoading } = useBalance({
-    address: taker,
-    token: sellTokenObject.address,
-  });
+  /*   const { data, isError, isLoading } = useBalance({
+      address: taker,
+      token: sellTokenObject.address,
+    }); */
 
-  console.log("taker sellToken balance: ", data);
+  // console.log("taker sellToken balance: ", data);
 
-  const inSufficientBalance =
-    data && sellAmount
-      ? parseUnits(sellAmount, sellTokenDecimals) > data.value
-      : true;
+
 
   return (
     <div>
@@ -158,7 +194,7 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton />
+        <ConnectButton client={client} />
       </header>
 
       <div className="container mx-auto p-10">
@@ -277,14 +313,14 @@ export default function PriceView({
           <div className="text-slate-400">
             {price && price.fees.integratorFee.amount
               ? "Affiliate Fee: " +
-                Number(
-                  formatUnits(
-                    BigInt(price.fees.integratorFee.amount),
-                    MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
-                  )
-                ) +
-                " " +
-                MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
+              Number(
+                formatUnits(
+                  BigInt(price.fees.integratorFee.amount),
+                  MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
+                )
+              ) +
+              " " +
+              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
               : null}
           </div>
         </div>
@@ -300,95 +336,7 @@ export default function PriceView({
             price={price}
           />
         ) : (
-          <ConnectButton.Custom>
-            {({
-              account,
-              chain,
-              openAccountModal,
-              openChainModal,
-              openConnectModal,
-              mounted,
-            }) => {
-              const ready = mounted;
-              const connected = ready && account && chain;
-
-              return (
-                <div
-                  {...(!ready && {
-                    "aria-hidden": true,
-                    style: {
-                      opacity: 0,
-                      pointerEvents: "none",
-                      userSelect: "none",
-                    },
-                  })}
-                >
-                  {(() => {
-                    if (!connected) {
-                      return (
-                        <button
-                          className="w-full bg-blue-600 text-white font-semibold p-2 rounded hover:bg-blue-700"
-                          onClick={openConnectModal}
-                          type="button"
-                        >
-                          Connect Wallet
-                        </button>
-                      );
-                    }
-
-                    if (chain.unsupported) {
-                      return (
-                        <button onClick={openChainModal} type="button">
-                          Wrong network
-                        </button>
-                      );
-                    }
-
-                    return (
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <button
-                          onClick={openChainModal}
-                          style={{ display: "flex", alignItems: "center" }}
-                          type="button"
-                        >
-                          {chain.hasIcon && (
-                            <div
-                              style={{
-                                background: chain.iconBackground,
-                                width: 12,
-                                height: 12,
-                                borderRadius: 999,
-                                overflow: "hidden",
-                                marginRight: 4,
-                              }}
-                            >
-                              {chain.iconUrl && (
-                                <Image
-                                  src={chain.iconUrl}
-                                  alt={chain.name ?? "Chain icon"}
-                                  width={12}
-                                  height={12}
-                                  layout="fixed"
-                                />
-                              )}
-                            </div>
-                          )}
-                          {chain.name}
-                        </button>
-
-                        <button onClick={openAccountModal} type="button">
-                          {account.displayName}
-                          {account.displayBalance
-                            ? ` (${account.displayBalance})`
-                            : ""}
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            }}
-          </ConnectButton.Custom>
+          <div>ConnectButton.Custom was here not needed fornow</div>
         )}
       </div>
     </div>
@@ -407,84 +355,73 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    // If price.issues.allowance is null, show the Review Trade button
-    if (price?.issues.allowance === null) {
-      return (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => {
-            // fetch data, when finished, show quote view
-            onClick();
-          }}
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
-        >
-          {disabled ? "Insufficient Balance" : "Review Trade"}
-        </button>
-      );
-    }
-
-    // Determine the spender from price.issues.allowance
     const spender = price?.issues.allowance.spender;
 
-    // 1. Read from erc20, check approval for the determined spender to spend sellToken
-    const { data: allowance, refetch } = useReadContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [taker, spender],
-    });
-    console.log("checked spender approval");
 
-    // 2. (only if no allowance): write to erc20, approve token allowance for the determined spender
-    const { data } = useSimulateContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [spender, MAX_ALLOWANCE],
-    });
-
-    // Define useWriteContract for the 'approve' operation
-    const {
-      data: writeContractResult,
-      writeContractAsync: writeContract,
-      error,
-    } = useWriteContract();
-
-    // useWaitForTransactionReceipt to wait for the approval transaction to complete
-    const { data: approvalReceiptData, isLoading: isApproving } =
-      useWaitForTransactionReceipt({
-        hash: writeContractResult,
-      });
-
-    // Call `refetch` when the transaction succeeds
+    // Read allowance
+    const [allowance, setAllowance] = useState<bigint>(BigInt(0));
     useEffect(() => {
-      if (data) {
-        refetch();
+      const fetchAllowance = async () => {
+        if (taker && spender && sellTokenAddress && activeChain) {
+          const contract = getContract({ 
+            address: sellTokenAddress, 
+            abi: erc20Abi,
+            client,
+            chain: activeChain
+          });
+          try {
+            const result = await readContract({
+              contract,
+              method: "allowance", // Changed from functionName to method
+              params: [taker, spender], // Changed from args to params
+            });
+            setAllowance(BigInt(result));
+          } catch (error) {
+            console.error("Error fetching allowance:", error);
+            setAllowance(BigInt(0));
+          }
+        } else {
+          setAllowance(BigInt(0));
+        }
+      };
+      fetchAllowance();
+    }, [taker, spender, sellTokenAddress]);
+
+    // Send transaction for approval
+
+    const [isApproving, setIsApproving] = useState(false);
+    const handleApprove = async () => {
+      setIsApproving(true);
+      try {
+        const contract = getContract({ address: sellTokenAddress, abi: erc20Abi });
+        const preparedCall = await prepareContractCall({
+          contract,
+          functionName: "approve",
+          args: [spender, MAX_ALLOWANCE],
+        });
+        await sendTransaction(preparedCall);
+        // Refetch allowance after approval
+        const newAllowance = await readContract({
+          contract,
+          functionName: "allowance",
+          args: [taker, spender],
+        });
+        setAllowance(BigInt(newAllowance));
+      } catch (error) {
+        console.error("Approval failed:", error);
+      } finally {
+        setIsApproving(false);
       }
-    }, [data, refetch]);
+    };
 
-    if (error) {
-      return <div>Something went wrong: {error.message}</div>;
-    }
-
-    if (allowance === 0n) {
+    if (allowance === BigInt(0)) {
       return (
         <>
           <button
             type="button"
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-            onClick={async () => {
-              await writeContract({
-                abi: erc20Abi,
-                address: sellTokenAddress,
-                functionName: "approve",
-                args: [spender, MAX_ALLOWANCE],
-              });
-              console.log("approving spender to spend sell token");
-
-              refetch();
-            }}
+            onClick={handleApprove}
+            disabled={isApproving}
           >
             {isApproving ? "Approving…" : "Approve"}
           </button>
