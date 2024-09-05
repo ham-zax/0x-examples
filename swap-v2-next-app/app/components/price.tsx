@@ -219,7 +219,7 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton client={client} chain={ethereum} chains={[ethereum, polygon]} />
+        <ConnectButton client={client} chain={polygon} chains={[ethereum, polygon]} />
       </header>
 
       <div className="container mx-auto p-10">

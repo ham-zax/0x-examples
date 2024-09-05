@@ -57,7 +57,7 @@ export const POLYGON_TOKENS: Token[] = [
     name: "MATIC",
     symbol: "MATIC",
     decimals: 18,
-    address: "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     
@@ -67,7 +67,7 @@ export const POLYGON_TOKENS: Token[] = [
     name: "USD Coin",
     symbol: "USDC",
     decimals: 6,
-    address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
   },
@@ -148,7 +148,7 @@ export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
     name: "MATIC",
     symbol: "MATIC",
     decimals: 18,
-    address: "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     
@@ -158,7 +158,7 @@ export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
     name: "USD Coin",
     symbol: "USDC",
     decimals: 6,
-    address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
   },
