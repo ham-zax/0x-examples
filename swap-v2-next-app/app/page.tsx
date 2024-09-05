@@ -4,11 +4,9 @@ import PriceView from "./components/price";
 import QuoteView from "./components/quote";
 
 import { useState } from "react";
-import { useAccount, useChainId } from "wagmi";
 
 import type { PriceResponse } from "../src/utils/types";
-import { ConnectButton, useActiveAccount, useActiveWalletChain } from "thirdweb/react";
-import { client, thirdwebWallets } from "./providers";
+import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 // Page.tsx
 function Page() {
   // const { address } = useAccount();
@@ -28,7 +26,6 @@ function Page() {
     <div
       className={`flex min-h-screen flex-col items-center justify-between p-24`}
     >
-      <ConnectButton wallets={thirdwebWallets} client={client} />;
 
       {finalize && price ? (
         <QuoteView
