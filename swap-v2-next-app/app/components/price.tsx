@@ -12,9 +12,10 @@ import {
 } from "thirdweb/react";
 import {
   getContract,
+  readContract,
   prepareContractCall,
 } from "thirdweb";
-import { Address, labelhash } from "viem";
+import { Address } from "viem";
 import {
   PERMIT2_ADDRESS,
   MAINNET_TOKENS,
@@ -23,6 +24,8 @@ import {
   MAX_ALLOWANCE,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
+  POLYGON_TOKEN_BY_SYMBOL,
+  POLYGON_TOKENS,
 } from "../../src/constants";
 import { permit2Abi } from "../../src/utils/permit2abi";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
@@ -93,15 +96,25 @@ export default function PriceView({
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_SYMBOL;
     }
+    if (chainId === 137) {
+      return POLYGON_TOKEN_BY_SYMBOL;
+    }
     return MAINNET_TOKENS_BY_SYMBOL;
   };
 
   const sellTokenObject = tokensByChain(chainId)[sellToken];
+  if (!sellTokenObject) {
+    console.error(`Token ${sellToken} not found for chain ${chainId}`);
+    // Handle the error appropriately (e.g., show an error message to the user)
+    console.error("Token not found");
+  }
+
+  console.log("sellTokenObject", sellTokenObject);
   const buyTokenObject = tokensByChain(chainId)[buyToken];
 
-  const sellTokenDecimals = sellTokenObject.decimals;
-  const buyTokenDecimals = buyTokenObject.decimals;
-  const sellTokenAddress = sellTokenObject.address;
+  const sellTokenDecimals = sellTokenObject?.decimals;
+  const buyTokenDecimals = buyTokenObject?.decimals;
+  const sellTokenAddress = sellTokenObject?.address;
 
   const parsedSellAmount = sellAmount && tradeDirection === "sell"
     ? toUnits(sellAmount, sellTokenDecimals)
@@ -121,21 +134,21 @@ export default function PriceView({
   console.log("balance: ", balance);
 
   const inSufficientBalance =
-    balance && sellAmount
-      ? toUnits(sellAmount, sellTokenDecimals) > balance.value
-      : true;
-
+  balance && sellAmount
+    ? toUnits(sellAmount, sellTokenDecimals) > balance.value
+    : true;
+  // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
     const params = {
       chainId: chainId,
-      sellToken: sellTokenObject.address,
-      buyToken: buyTokenObject.address,
+      sellToken: sellTokenObject?.address,
+      buyToken: buyTokenObject?.address,
       sellAmount: parsedSellAmount,
       buyAmount: parsedBuyAmount,
       taker,
       swapFeeRecipient: FEE_RECIPIENT,
       swapFeeBps: AFFILIATE_FEE,
-      swapFeeToken: buyTokenObject.address,
+      swapFeeToken: buyTokenObject?.address,
       tradeSurplusRecipient: FEE_RECIPIENT,
     };
 
@@ -157,9 +170,18 @@ export default function PriceView({
     if (sellAmount !== "") {
       main();
     }
+
+    // Update the sellToken and buyToken when the chain changes
+    if (chainId === 1) {
+      setSellToken("weth");
+      setBuyToken("usdc");
+    } else if (chainId === 137) {
+      setSellToken("matic");
+      setBuyToken("usdc");
+    }
   }, [
-    sellTokenObject.address,
-    buyTokenObject.address,
+    sellTokenObject?.address,
+    buyTokenObject?.address,
     parsedSellAmount,
     parsedBuyAmount,
     chainId,
@@ -169,9 +191,26 @@ export default function PriceView({
     AFFILIATE_FEE,
   ]);
 
+  // Hook for fetching balance information for specified token for a specific taker address
+  /*   const { data, isError, isLoading } = useBalance({
+      address: taker,
+      token: sellTokenObject?.address,
+    }); */
+
+  // console.log("taker sellToken balance: ", data);
+
+  const tokenOptions = chainId === 137 ? POLYGON_TOKENS : MAINNET_TOKENS;
+  const tokensBySymbol = chainId === 137 ? POLYGON_TOKEN_BY_SYMBOL : MAINNET_TOKENS_BY_SYMBOL;
+
+
   return (
     <div>
-      <header style={{ display: "flex", justifyContent: "space-between" }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
@@ -209,7 +248,7 @@ export default function PriceView({
             <Image
               alt={sellToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI}
+              src={tokensBySymbol[sellToken]?.logoURI}
               width={6}
               height={6}
             />
@@ -222,7 +261,8 @@ export default function PriceView({
                 className="mr-2 w-50 sm:w-full h-9 rounded-md"
                 onChange={handleSellTokenChange}
               >
-                {MAINNET_TOKENS.map((token) => {
+                {/* <option value="">--Choose a token--</option> */}
+                {tokenOptions.map((token) => {
                   return (
                     <option
                       key={token.address}
@@ -255,7 +295,7 @@ export default function PriceView({
             <Image
               alt={buyToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI}
+              src={tokensBySymbol[buyToken]?.logoURI}
               width={6}
               height={6}
             />
@@ -266,7 +306,7 @@ export default function PriceView({
               className="mr-2 w-50 sm:w-full h-9 rounded-md"
               onChange={(e) => handleBuyTokenChange(e)}
             >
-              {MAINNET_TOKENS.map((token) => {
+              {tokenOptions.map((token) => {
                 return (
                   <option
                     key={token.address}
@@ -298,18 +338,18 @@ export default function PriceView({
               Number(
                 toTokens(
                   BigInt(price.fees.integratorFee.amount),
-                  MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
+                  tokensBySymbol[buyToken].decimals
                 )
               ) +
               " " +
-              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
+              tokensBySymbol[buyToken].symbol
               : null}
           </div>
         </div>
 
-        {taker ? (
+        {taker && tokensBySymbol[sellToken] ? (
           <ApproveOrReviewButton
-            sellTokenAddress={MAINNET_TOKENS_BY_SYMBOL[sellToken].address}
+            sellTokenAddress={tokensBySymbol[sellToken].address}
             taker={taker}
             onClick={() => {
               setFinalize(true);
@@ -318,7 +358,7 @@ export default function PriceView({
             price={price}
           />
         ) : (
-          <div>Connect your wallet to continue</div>
+          <div>ConnectButton.Custom was here not needed fornow</div>
         )}
       </div>
     </div>
@@ -339,16 +379,16 @@ export default function PriceView({
   }) {
     const spender = price?.issues?.allowance?.spender || PERMIT2_ADDRESS;
 
-    const contract = getContract({
-      address: sellTokenAddress,
-      client,
-      chain: activeChain
-    });
-
+        const contract = getContract({
+          address: sellTokenAddress,
+          client,
+          chain: activeChain
+        });
+    
     const { data: allowanceData } = useReadContract(
       {
-        contract,
-        method: "allowance",
+            contract,
+            method: "allowance",
         params: [taker, spender]
       }
     );
@@ -359,7 +399,7 @@ export default function PriceView({
     console.log("estimateGas: ", estimateGas);
 
     const [isApproving, setIsApproving] = useState(false);
-
+  
 
     const handleApprove = async () => {
       setIsApproving(true);
@@ -370,22 +410,22 @@ export default function PriceView({
           method: "function approve(address spender, uint256 amount) returns (bool)",
           params: [spender, MAX_ALLOWANCE],
         });
-
+    
         const gasEstimate = await estimateGas(transaction);
         console.log("Estimated gas:", gasEstimate);
 
         const result = await sendTransaction(transaction);
         console.log("Approval transaction sent:", result);
-
+    
         if (typeof result === 'string') {
           const waitOptions: WaitForReceiptOptions = {
             transactionHash: result as `0x${string}`,
-            client,
+          client,
             chain: activeChain,
           };
-
+    
           const receipt = await waitForReceipt(waitOptions);
-          console.log("Approval transaction confirmed:", receipt);
+        console.log("Approval transaction confirmed:", receipt);
         } else {
           console.error("Unexpected result from sendTransaction:", result);
         }
