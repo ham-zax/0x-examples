@@ -17,6 +17,8 @@ import {
   MAX_ALLOWANCE,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
+  POLYGON_TOKEN_BY_SYMBOL,
+  POLYGON_TOKENS,
 } from "../../src/constants";
 import { permit2Abi } from "../../src/utils/permit2abi";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
@@ -24,6 +26,8 @@ import Image from "next/image";
 import qs from "qs";
 import { client } from "../providers";
 import { erc20Abi } from "../../src/utils/erc20abi";
+import { mainnet } from "viem/chains";
+import { ethereum, polygon } from "thirdweb/chains";
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
     return "weth";
@@ -71,16 +75,25 @@ export default function PriceView({
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_SYMBOL;
     }
+    if (chainId === 137) {
+      return POLYGON_TOKEN_BY_SYMBOL;
+    }
     return MAINNET_TOKENS_BY_SYMBOL;
   };
 
   const sellTokenObject = tokensByChain(chainId)[sellToken];
+  if (!sellTokenObject) {
+    console.error(`Token ${sellToken} not found for chain ${chainId}`);
+    // Handle the error appropriately (e.g., show an error message to the user)
+    console.error("Token not found");
+  }
+
   console.log("sellTokenObject", sellTokenObject);
   const buyTokenObject = tokensByChain(chainId)[buyToken];
 
-  const sellTokenDecimals = sellTokenObject.decimals;
-  const buyTokenDecimals = buyTokenObject.decimals;
-  const sellTokenAddress = sellTokenObject.address;
+  const sellTokenDecimals = sellTokenObject?.decimals;
+  const buyTokenDecimals = buyTokenObject?.decimals;
+  const sellTokenAddress = sellTokenObject?.address;
 
   // Near the top of your component, where you define parsedSellAmount
   const parsedSellAmount = sellAmount && tradeDirection === "sell"
@@ -95,9 +108,9 @@ export default function PriceView({
   const { mutate: estimateGas } = useEstimateGas();
 
   const fetchBalance = async () => {
-    if (activeAccount?.address && sellTokenObject.address && activeChain) {
+    if (activeAccount?.address && sellTokenObject?.address && activeChain) {
       const contract = getContract({
-        address: sellTokenObject.address,
+        address: sellTokenObject?.address,
         abi: erc20Abi,
         client,
         chain: activeChain
@@ -105,8 +118,8 @@ export default function PriceView({
       try {
         const balance = await readContract({
           contract,
-          method: "balanceOf", // Changed from functionName to method
-          params: [activeAccount.address as Address], // Changed from args to params
+          method: "balanceOf",
+          params: [activeAccount.address as Address],
         });
         return BigInt(balance);
       } catch (error) {
@@ -120,7 +133,7 @@ export default function PriceView({
   const [balance, setBalance] = useState<bigint>(BigInt(0));
   useEffect(() => {
     fetchBalance().then(setBalance);
-  }, [activeAccount, sellTokenObject.address]);
+  }, [activeAccount, sellTokenObject?.address]);
 
   console.log("taker sellToken balance: ", balance);
 
@@ -132,14 +145,14 @@ export default function PriceView({
   useEffect(() => {
     const params = {
       chainId: chainId,
-      sellToken: sellTokenObject.address,
-      buyToken: buyTokenObject.address,
+      sellToken: sellTokenObject?.address,
+      buyToken: buyTokenObject?.address,
       sellAmount: parsedSellAmount,
       buyAmount: parsedBuyAmount,
       taker,
       swapFeeRecipient: FEE_RECIPIENT,
       swapFeeBps: AFFILIATE_FEE,
-      swapFeeToken: buyTokenObject.address,
+      swapFeeToken: buyTokenObject?.address,
       tradeSurplusRecipient: FEE_RECIPIENT,
     };
 
@@ -162,9 +175,18 @@ export default function PriceView({
     if (sellAmount !== "") {
       main();
     }
+
+    // Update the sellToken and buyToken when the chain changes
+    if (chainId === 1) {
+      setSellToken("weth");
+      setBuyToken("usdc");
+    } else if (chainId === 137) {
+      setSellToken("matic");
+      setBuyToken("usdc");
+    }
   }, [
-    sellTokenObject.address,
-    buyTokenObject.address,
+    sellTokenObject?.address,
+    buyTokenObject?.address,
     parsedSellAmount,
     parsedBuyAmount,
     chainId,
@@ -177,11 +199,13 @@ export default function PriceView({
   // Hook for fetching balance information for specified token for a specific taker address
   /*   const { data, isError, isLoading } = useBalance({
       address: taker,
-      token: sellTokenObject.address,
+      token: sellTokenObject?.address,
     }); */
 
   // console.log("taker sellToken balance: ", data);
 
+  const tokenOptions = chainId === 137 ? POLYGON_TOKENS : MAINNET_TOKENS;
+  const tokensBySymbol = chainId === 137 ? POLYGON_TOKEN_BY_SYMBOL : MAINNET_TOKENS_BY_SYMBOL;
 
 
   return (
@@ -195,7 +219,7 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton client={client} />
+        <ConnectButton client={client} chain={ethereum} chains={[ethereum, polygon]} />
       </header>
 
       <div className="container mx-auto p-10">
@@ -226,7 +250,7 @@ export default function PriceView({
             <Image
               alt={sellToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI}
+              src={tokensBySymbol[sellToken]?.logoURI}
               width={6}
               height={6}
             />
@@ -240,7 +264,7 @@ export default function PriceView({
                 onChange={handleSellTokenChange}
               >
                 {/* <option value="">--Choose a token--</option> */}
-                {MAINNET_TOKENS.map((token) => {
+                {tokenOptions.map((token) => {
                   return (
                     <option
                       key={token.address}
@@ -273,7 +297,7 @@ export default function PriceView({
             <Image
               alt={buyToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI}
+              src={tokensBySymbol[buyToken]?.logoURI}
               width={6}
               height={6}
             />
@@ -285,7 +309,7 @@ export default function PriceView({
               onChange={(e) => handleBuyTokenChange(e)}
             >
               {/* <option value="">--Choose a token--</option> */}
-              {MAINNET_TOKENS.map((token) => {
+              {tokenOptions.map((token) => {
                 return (
                   <option
                     key={token.address}
@@ -317,18 +341,18 @@ export default function PriceView({
               Number(
                 toTokens(
                   BigInt(price.fees.integratorFee.amount),
-                  MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
+                  tokensBySymbol[buyToken].decimals
                 )
               ) +
               " " +
-              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
+              tokensBySymbol[buyToken].symbol
               : null}
           </div>
         </div>
 
-        {taker ? (
+        {taker && tokensBySymbol[sellToken] ? (
           <ApproveOrReviewButton
-            sellTokenAddress={MAINNET_TOKENS_BY_SYMBOL[sellToken].address}
+            sellTokenAddress={tokensBySymbol[sellToken].address}
             taker={taker}
             onClick={() => {
               setFinalize(true);
@@ -356,7 +380,7 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    const spender = price?.issues.allowance.spender;
+    const spender = exchangeProxy(chainId);
 
 
     // Read allowance
@@ -376,14 +400,13 @@ export default function PriceView({
             method: "allowance",
             params: [taker, spender],
           });
-          setAllowance(BigInt(result));
+          return BigInt(result);
         } catch (error) {
           console.error("Error fetching allowance:", error);
-          setAllowance(BigInt(0));
+          return BigInt(0);
         }
-      } else {
-        setAllowance(BigInt(0));
       }
+      return BigInt(0);
     };
     useEffect(() => {
       if (taker && spender && sellTokenAddress) {
@@ -397,40 +420,42 @@ export default function PriceView({
     const handleApprove = async () => {
       setIsApproving(true);
       try {
-        if (activeChain) {
-          const contract = getContract({
-            address: sellTokenAddress,
-            abi: erc20Abi,
-            client,
-            chain: activeChain
-          });
-
-          const preparedCall = await prepareContractCall({
-            contract,
-            method: "approve",
-            params: [spender, MAX_ALLOWANCE],
-          });
-
-          if (!activeAccount) {
-            throw new Error("No active account");
-          }
-
-          const result = await sendTransaction({
-            transaction: preparedCall,
-            account: activeAccount,
-          });
-
-          console.log("Approval transaction sent:", result.transactionHash);
-
-          // Wait for transaction confirmation
-          const receipt = await waitForReceipt(result);
-          console.log("Approval transaction confirmed:", receipt);
-
-          // Refetch allowance after approval
-          await fetchAllowance();
+        if (!activeChain) {
+          throw new Error("No active chain");
         }
+        if (!activeAccount) {
+          throw new Error("No active account");
+        }
+
+        const contract = getContract({
+          address: sellTokenAddress,
+          abi: erc20Abi,
+          client,
+          chain: activeChain
+        });
+
+        const preparedCall = await prepareContractCall({
+          contract,
+          method: "approve",
+          params: [spender, MAX_ALLOWANCE],
+        });
+
+        const result = await sendTransaction({
+          transaction: preparedCall,
+          account: activeAccount,
+        });
+
+        console.log("Approval transaction sent:", result.transactionHash);
+
+        // Wait for transaction confirmation
+        const receipt = await waitForReceipt(result);
+        console.log("Approval transaction confirmed:", receipt);
+
+        // Refetch allowance after approval
+        await fetchAllowance();
       } catch (error) {
         console.error("Approval failed:", error);
+        // Handle the error (e.g., show an error message to the user)
       } finally {
         setIsApproving(false);
       }
