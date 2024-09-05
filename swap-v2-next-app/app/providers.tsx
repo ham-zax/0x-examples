@@ -1,32 +1,10 @@
 "use client";
 
 import * as React from "react";
-import {
-  RainbowKitProvider,
-  getDefaultWallets,
-  getDefaultConfig,
-} from "@rainbow-me/rainbowkit";
-import {
-  argentWallet,
-  trustWallet,
-  ledgerWallet,
-} from "@rainbow-me/rainbowkit/wallets";
-import {
-  arbitrum,
-  base,
-  mainnet,
-  optimism,
-  polygon,
-  sepolia,
-} from "wagmi/chains";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
 import { createThirdwebClient } from "thirdweb";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
-import { walletConnect } from "wagmi/connectors";
 import { ThirdwebProvider } from "thirdweb/react";
 
-const { wallets } = getDefaultWallets();
 
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string;
 

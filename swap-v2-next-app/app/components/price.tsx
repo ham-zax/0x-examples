@@ -1,12 +1,18 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { toUnits, toTokens } from "thirdweb";
-import { ConnectButton, useActiveAccount, useActiveWalletChain, useEstimateGas } from "thirdweb/react";
+import { toUnits, toTokens, waitForReceipt } from "thirdweb";
+import {
+  ConnectButton,
+  useActiveAccount,
+  useActiveWalletChain,
+  useEstimateGas,
+  useReadContract,
+  useSendTransaction,
+  useWalletBalance,
+  useWaitForReceipt
+} from "thirdweb/react";
 import {
   getContract,
-  readContract,
   prepareContractCall,
-  sendTransaction,
-  waitForReceipt,
 } from "thirdweb";
 import { Address } from "viem";
 import {
@@ -24,6 +30,9 @@ import Image from "next/image";
 import qs from "qs";
 import { client } from "../providers";
 import { erc20Abi } from "../../src/utils/erc20abi";
+import { balanceOf } from "thirdweb/extensions/erc20";
+import { WaitForReceiptOptions } from "thirdweb/transaction";
+
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
     return "weth";
@@ -51,7 +60,22 @@ export default function PriceView({
   const [error, setError] = useState([]);
 
   const activeAccount = useActiveAccount();
-  const activeChain = useActiveWalletChain();
+  const activeChain = useActiveWalletChain() || {
+    "id": 1,
+    "name": "Ethereum",
+    "nativeCurrency": {
+      "name": "Ether",
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    "blockExplorers": [
+      {
+        "name": "Etherscan",
+        "url": "https://etherscan.io"
+      }
+    ],
+    "rpc": "https://1.rpc.thirdweb.com"
+  };
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSellToken(e.target.value);
@@ -75,14 +99,12 @@ export default function PriceView({
   };
 
   const sellTokenObject = tokensByChain(chainId)[sellToken];
-  console.log("sellTokenObject", sellTokenObject);
   const buyTokenObject = tokensByChain(chainId)[buyToken];
 
   const sellTokenDecimals = sellTokenObject.decimals;
   const buyTokenDecimals = buyTokenObject.decimals;
   const sellTokenAddress = sellTokenObject.address;
 
-  // Near the top of your component, where you define parsedSellAmount
   const parsedSellAmount = sellAmount && tradeDirection === "sell"
     ? toUnits(sellAmount, sellTokenDecimals)
     : undefined;
@@ -94,41 +116,18 @@ export default function PriceView({
 
   const { mutate: estimateGas } = useEstimateGas();
 
-  const fetchBalance = async () => {
-    if (activeAccount?.address && sellTokenObject.address && activeChain) {
-      const contract = getContract({
-        address: sellTokenObject.address,
-        abi: erc20Abi,
-        client,
-        chain: activeChain
-      });
-      try {
-        const balance = await readContract({
-          contract,
-          method: "balanceOf", // Changed from functionName to method
-          params: [activeAccount.address as Address], // Changed from args to params
-        });
-        return BigInt(balance);
-      } catch (error) {
-        console.error("Error fetching balance:", error);
-        return BigInt(0);
-      }
-    }
-    return BigInt(0);
-  };
-
-  const [balance, setBalance] = useState<bigint>(BigInt(0));
-  useEffect(() => {
-    fetchBalance().then(setBalance);
-  }, [activeAccount, sellTokenObject.address]);
-
-  console.log("taker sellToken balance: ", balance);
+  const { data: balance } = useWalletBalance({
+    client,
+    address: activeAccount?.address,
+    chain: activeChain,
+    token: sellTokenAddress
+  });
 
   const inSufficientBalance =
     balance && sellAmount
-      ? toUnits(sellAmount, sellTokenDecimals) > balance
+      ? toUnits(sellAmount, sellTokenDecimals) > balance.value
       : true;
-  // Fetch price data and set the buyAmount whenever the sellAmount changes
+
   useEffect(() => {
     const params = {
       chainId: chainId,
@@ -148,7 +147,6 @@ export default function PriceView({
       const data = await response.json();
 
       if (data?.validationErrors?.length > 0) {
-        // error for sellAmount too low
         setError(data.validationErrors);
       } else {
         setError([]);
@@ -174,24 +172,9 @@ export default function PriceView({
     AFFILIATE_FEE,
   ]);
 
-  // Hook for fetching balance information for specified token for a specific taker address
-  /*   const { data, isError, isLoading } = useBalance({
-      address: taker,
-      token: sellTokenObject.address,
-    }); */
-
-  // console.log("taker sellToken balance: ", data);
-
-
-
   return (
     <div>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
+      <header style={{ display: "flex", justifyContent: "space-between" }}>
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
@@ -239,7 +222,6 @@ export default function PriceView({
                 className="mr-2 w-50 sm:w-full h-9 rounded-md"
                 onChange={handleSellTokenChange}
               >
-                {/* <option value="">--Choose a token--</option> */}
                 {MAINNET_TOKENS.map((token) => {
                   return (
                     <option
@@ -284,7 +266,6 @@ export default function PriceView({
               className="mr-2 w-50 sm:w-full h-9 rounded-md"
               onChange={(e) => handleBuyTokenChange(e)}
             >
-              {/* <option value="">--Choose a token--</option> */}
               {MAINNET_TOKENS.map((token) => {
                 return (
                   <option
@@ -337,7 +318,7 @@ export default function PriceView({
             price={price}
           />
         ) : (
-          <div>ConnectButton.Custom was here not needed fornow</div>
+          <div>Connect your wallet to continue</div>
         )}
       </div>
     </div>
@@ -356,78 +337,56 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    const spender = price?.issues.allowance.spender;
-
-
-    // Read allowance
-    const [allowance, setAllowance] = useState<bigint>(BigInt(0));
-
-    const fetchAllowance = async () => {
-      if (taker && spender && sellTokenAddress && activeChain) {
-        const contract = getContract({
-          address: sellTokenAddress,
-          abi: erc20Abi,
-          client,
-          chain: activeChain
-        });
-        try {
-          const result = await readContract({
-            contract,
-            method: "allowance",
-            params: [taker, spender],
-          });
-          setAllowance(BigInt(result));
-        } catch (error) {
-          console.error("Error fetching allowance:", error);
-          setAllowance(BigInt(0));
-        }
-      } else {
-        setAllowance(BigInt(0));
+    const spender = price?.issues?.allowance?.spender || PERMIT2_ADDRESS;
+  
+    const contract = getContract({
+      address: sellTokenAddress,
+      client,
+      chain: activeChain
+    });
+  
+    const { data: allowanceData  } = useReadContract(
+      {
+        contract,
+        method: "allowance",
+        params: [taker, spender]
       }
-    };
-    useEffect(() => {
-      if (taker && spender && sellTokenAddress) {
-        fetchAllowance();
-      }
-    }, [taker, spender, sellTokenAddress]);
-    // Send transaction for approval
+    );
+    const allowance = allowanceData ? BigInt(allowanceData.toString()) : BigInt(0);
 
+    const { mutate: sendTransaction } = useSendTransaction();
+    const { mutate: estimateGas } = useEstimateGas();
+  
     const [isApproving, setIsApproving] = useState(false);
+  
 
     const handleApprove = async () => {
       setIsApproving(true);
       try {
-        if (activeChain) {
-          const contract = getContract({
-            address: sellTokenAddress,
-            abi: erc20Abi,
+        
+        const transaction = prepareContractCall({
+          contract,
+          method: "function approve(address spender, uint256 amount) returns (bool)",
+          params: [spender, MAX_ALLOWANCE],
+        });
+    
+        const gasEstimate = await estimateGas(transaction);
+        console.log("Estimated gas:", gasEstimate);
+    
+        const result = await sendTransaction(transaction);
+        console.log("Approval transaction sent:", result);
+    
+        if (typeof result === 'string') {
+          const waitOptions: WaitForReceiptOptions = {
+            transactionHash: result as `0x${string}`,
             client,
-            chain: activeChain
-          });
-
-          const preparedCall = await prepareContractCall({
-            contract,
-            method: "approve",
-            params: [spender, MAX_ALLOWANCE],
-          });
-
-          if (!activeAccount) {
-            throw new Error("No active account");
-          }
-
-          const result = await sendTransaction({
-            transaction: preparedCall,
-            account: activeAccount,
-          });
-
-          console.log("Approval transaction sent:", result.transactionHash);
-
-          // Wait for transaction confirmation
-          const receipt = await waitForReceipt(result);
+            chain: activeChain,
+          };
+    
+          const receipt = await waitForReceipt(waitOptions);
           console.log("Approval transaction confirmed:", receipt);
-
-          // Refetch allowance after approval
-          await fetchAllowance();
+        } else {
+          console.error("Unexpected result from sendTransaction:", result);
         }
       } catch (error) {
         console.error("Approval failed:", error);
@@ -435,7 +394,6 @@ export default function PriceView({
         setIsApproving(false);
       }
     };
-
     if (parsedSellAmount && allowance < parsedSellAmount) {
       return (
         <button
@@ -458,7 +416,6 @@ export default function PriceView({
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
-
     );
   }
 }

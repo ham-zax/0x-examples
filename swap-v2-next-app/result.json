@@ -1,0 +1,274 @@
+thirdweb React SDK
+===============
+
+[Connect SDK v5 has been released. See documentation.](https://portal.thirdweb.com/typescript/v5)
+
+[Docs](https://portal.thirdweb.com/ "thirdweb Docs")
+
+[](https://github.com/thirdweb-dev)
+
+Connect
+
+Connect
+
+[![Image 1](https://portal.thirdweb.com/icons/navbar/nav-icon-dashboard.svg)Overview](https://portal.thirdweb.com/connect)[![Image 2](https://portal.thirdweb.com/icons/navbar/nav-icon-typescript.svg)TypeScript](https://portal.thirdweb.com/typescript/v5)[![Image 3](https://portal.thirdweb.com/icons/navbar/nav-icon-react.svg)React](https://portal.thirdweb.com/react/v5)[![Image 4](https://portal.thirdweb.com/icons/navbar/nav-icon-react.svg)React Native](https://portal.thirdweb.com/react-native/v5)[![Image 5](https://portal.thirdweb.com/icons/navbar/nav-icon-dotnet.svg).NET](https://portal.thirdweb.com/dotnet)[![Image 6](https://portal.thirdweb.com/icons/navbar/nav-icon-unity.svg)Unity](https://portal.thirdweb.com/unity)[![Image 7](https://portal.thirdweb.com/icons/navbar/nav-icon-unreal.svg)Unreal](https://portal.thirdweb.com/unreal)
+
+*   [Engine](https://portal.thirdweb.com/engine)
+*   [Contracts](https://portal.thirdweb.com/contracts)
+
+Tools
+
+Tools
+
+[Chain List](https://thirdweb.com/chainlist)[Wei Converter](https://thirdweb.com/tools/wei-converter)[Hex Converter](https://thirdweb.com/tools/hex-converter)[Account](https://portal.thirdweb.com/account)[API Keys](https://portal.thirdweb.com/account/api-keys)[CLI](https://portal.thirdweb.com/cli)
+
+Search Docs
+
+K
+
+Support
+
+Support
+
+[Support Site](https://thirdweb.com/support)[Contact Sales](https://thirdweb.com/contact-us)
+
+[Changelog](https://portal.thirdweb.com/changelog)[](https://github.com/thirdweb-dev)
+
+Connect
+
+![Image 8](https://portal.thirdweb.com/icons/navbar/nav-icon-react.svg)React
+
+*   * * *
+    
+*   [Overview](https://portal.thirdweb.com/react/v5)
+*   [Getting Started](https://portal.thirdweb.com/react/v5/getting-started)
+*   [Live Playground](https://playground.thirdweb.com/)
+*   * * *
+    
+*   Core
+    
+    *   [Client](https://portal.thirdweb.com/react/v5/createThirdwebClient)
+    *   [ThirdwebProvider](https://portal.thirdweb.com/react/v5/ThirdwebProvider)
+    *   Themes
+        
+        *   [Theme Props](https://portal.thirdweb.com/react/v5/Theme)
+        *   [darkTheme](https://portal.thirdweb.com/react/v5/darkTheme)
+        *   [lightTheme](https://portal.thirdweb.com/react/v5/lightTheme)
+        
+    *   Adapters
+        
+        *   [Introduction](https://portal.thirdweb.com/react/v5/adapters)
+        *   [createWalletAdapter](https://portal.thirdweb.com/react/v5/createWalletAdapter)
+        *   [viemAdapter](https://portal.thirdweb.com/react/v5/viemAdapter)
+        *   [ethers6Adapter](https://portal.thirdweb.com/react/v5/ethers6Adapter)
+        *   [ethers5Adapter](https://portal.thirdweb.com/react/v5/ethers5Adapter)
+        
+    *   [TS reference](https://portal.thirdweb.com/typescript/v5)
+    
+*   * * *
+    
+*   Wallets
+    
+    *   UI Components
+        
+        *   [Introduction](https://portal.thirdweb.com/react/v5/connecting-wallets/ui-components)
+        *   [ConnectButton](https://portal.thirdweb.com/react/v5/ConnectButton)
+        *   [ConnectEmbed](https://portal.thirdweb.com/react/v5/ConnectEmbed)
+        *   [AutoConnect](https://portal.thirdweb.com/react/v5/AutoConnect)
+        
+    *   Connection Hooks
+        
+        *   [Introduction](https://portal.thirdweb.com/react/v5/connecting-wallets/hooks)
+        *   [useActiveAccount](https://portal.thirdweb.com/react/v5/useActiveAccount)
+        *   [useActiveWallet](https://portal.thirdweb.com/react/v5/useActiveWallet)
+        *   [useActiveWalletChain](https://portal.thirdweb.com/react/v5/useActiveWalletChain)
+        *   [useActiveWalletConnectionStatus](https://portal.thirdweb.com/react/v5/useActiveWalletConnectionStatus)
+        *   [useAutoConnect](https://portal.thirdweb.com/react/v5/useAutoConnect)
+        *   [useConnect](https://portal.thirdweb.com/react/v5/useConnect)
+        *   [useConnectModal](https://portal.thirdweb.com/react/v5/useConnectModal)
+        *   [useConnectedWallets](https://portal.thirdweb.com/react/v5/useConnectedWallets)
+        *   [useDisconnect](https://portal.thirdweb.com/react/v5/useDisconnect)
+        *   [useIsAutoConnecting](https://portal.thirdweb.com/react/v5/useIsAutoConnecting)
+        *   [useSetActiveWallet](https://portal.thirdweb.com/react/v5/useSetActiveWallet)
+        *   [useSwitchActiveWalletChain](https://portal.thirdweb.com/react/v5/useSwitchActiveWalletChain)
+        
+    *   Wallet Hooks
+        
+        *   [useNetworkSwitcherModal](https://portal.thirdweb.com/react/v5/useNetworkSwitcherModal)
+        *   [useProfiles](https://portal.thirdweb.com/react/v5/useProfiles)
+        *   [useWalletBalance](https://portal.thirdweb.com/react/v5/useWalletBalance)
+        *   [useWalletDetailsModal](https://portal.thirdweb.com/react/v5/useWalletDetailsModal)
+        *   [useWalletImage](https://portal.thirdweb.com/react/v5/useWalletImage)
+        *   [useWalletInfo](https://portal.thirdweb.com/react/v5/useWalletInfo)
+        
+    *   In-App Wallets
+        
+        *   [Get Started](https://portal.thirdweb.com/react/v5/in-app-wallet/get-started)
+        *   [Sponsor Transactions](https://portal.thirdweb.com/react/v5/in-app-wallet/enable-gasless)
+        *   [Build your own UI](https://portal.thirdweb.com/react/v5/in-app-wallet/build-your-own-ui)
+        *   [Export Private Key](https://portal.thirdweb.com/react/v5/in-app-wallet/export-private-key)
+        *   [inAppWallet](https://portal.thirdweb.com/react/v5/inAppWallet)
+        *   [preAuthenticate](https://portal.thirdweb.com/react/v5/preAuthenticate)
+        *   [getUserEmail](https://portal.thirdweb.com/react/v5/getUserEmail)
+        *   [getUserPhoneNumber](https://portal.thirdweb.com/react/v5/getUserPhoneNumber)
+        *   [hasStoredPasskey](https://portal.thirdweb.com/react/v5/hasStoredPasskey)
+        
+    *   Account Abstraction
+        
+        *   [Get Started](https://portal.thirdweb.com/react/v5/account-abstraction/get-started)
+        *   [Build your own UI](https://portal.thirdweb.com/react/v5/account-abstraction/build-your-own-ui)
+        *   [Admins & Session Keys](https://portal.thirdweb.com/react/v5/account-abstraction/permissions)
+        *   [Batching Transactions](https://portal.thirdweb.com/react/v5/account-abstraction/batching-transactions)
+        *   [Core API](https://portal.thirdweb.com/typescript/v5/smartWallet)
+        
+    *   [All Supported Wallets](https://portal.thirdweb.com/typescript/v5/supported-wallets)
+    
+*   * * *
+    
+*   Pay
+    
+    *   UI Components
+        
+        *   [PayEmbed](https://portal.thirdweb.com/react/v5/PayEmbed)
+        
+    *   Buy with Fiat
+        
+        *   [useBuyWithFiatHistory](https://portal.thirdweb.com/react/v5/useBuyWithFiatHistory)
+        *   [useBuyWithFiatQuote](https://portal.thirdweb.com/react/v5/useBuyWithFiatQuote)
+        *   [useBuyWithFiatStatus](https://portal.thirdweb.com/react/v5/useBuyWithFiatStatus)
+        
+    *   Buy with Crypto
+        
+        *   [useBuyWithCryptoHistory](https://portal.thirdweb.com/react/v5/useBuyWithCryptoHistory)
+        *   [useBuyWithCryptoQuote](https://portal.thirdweb.com/react/v5/useBuyWithCryptoQuote)
+        *   [useBuyWithCryptoStatus](https://portal.thirdweb.com/react/v5/useBuyWithCryptoStatus)
+        
+    
+*   * * *
+    
+*   Blockchain API
+    
+    *   UI Components
+        
+        *   [ClaimButton](https://portal.thirdweb.com/react/v5/ClaimButton)
+        *   [TransactionButton](https://portal.thirdweb.com/react/v5/TransactionButton)
+        *   [MediaRenderer](https://portal.thirdweb.com/react/v5/MediaRenderer)
+        
+    *   Reading State
+        
+        *   [Introduction](https://portal.thirdweb.com/react/v5/reading-state)
+        *   [useContractEvents](https://portal.thirdweb.com/react/v5/useContractEvents)
+        *   [useReadContract](https://portal.thirdweb.com/react/v5/useReadContract)
+        
+    *   Transactions
+        
+        *   [Introduction](https://portal.thirdweb.com/react/v5/transactions)
+        *   [useEstimateGas](https://portal.thirdweb.com/react/v5/useEstimateGas)
+        *   [useEstimateGasCost](https://portal.thirdweb.com/react/v5/useEstimateGasCost)
+        *   [useSendAndConfirmTransaction](https://portal.thirdweb.com/react/v5/useSendAndConfirmTransaction)
+        *   [useSendBatchTransaction](https://portal.thirdweb.com/react/v5/useSendBatchTransaction)
+        *   [useSendTransaction](https://portal.thirdweb.com/react/v5/useSendTransaction)
+        *   [useSimulateTransaction](https://portal.thirdweb.com/react/v5/useSimulateTransaction)
+        *   [useWaitForReceipt](https://portal.thirdweb.com/react/v5/useWaitForReceipt)
+        
+    *   Extensions
+        
+        *   [Using Extensions](https://portal.thirdweb.com/react/v5/extensions)
+        *   [Available Extensions](https://portal.thirdweb.com/typescript/v5/extensions/built-in)
+        
+    *   [Core API](https://portal.thirdweb.com/typescript/v5/chain)
+    
+*   * * *
+    
+*   [Migrate from v4](https://portal.thirdweb.com/react/v5/migrate)
+    
+    *   [Installation](https://portal.thirdweb.com/react/v5/migrate/installation)
+    *   [Interacting with contracts](https://portal.thirdweb.com/react/v5/migrate/contracts)
+    *   [ethers.js Adapter](https://portal.thirdweb.com/react/v5/migrate/ethers-adapter)
+    *   [Cheatsheet](https://portal.thirdweb.com/react/v5/migrate/cheatsheet)
+    
+*   [Migrate from RainbowKit](https://portal.thirdweb.com/react/v5/rainbow-kit-migrate)
+*   [Full Reference](https://portal.thirdweb.com/references/typescript/v5)
+
+Connect React SDK
+
+React SDK
+=========
+
+`thirdweb/react` exports various Components and Hooks to easily connect wallets & interact with smart contracts
+
+Quickstart
+----------
+
+[](https://portal.thirdweb.com/react/v5#quickstart)
+
+Follow this [guide](https://portal.thirdweb.com/react/v5/getting-started) to get started with the React SDK.
+
+[### Getting started Get started with the React SDK](https://portal.thirdweb.com/react/v5/getting-started)
+
+### Have you generated a client ID?
+
+You'll need a client ID to access the SDK's free blockchain APIs, storage, and more.
+
+[Generate](https://thirdweb.com/create-api-key)
+
+Starter kits
+------------
+
+[](https://portal.thirdweb.com/react/v5#starter-kits)
+
+You can quickly create a new project with the thirdweb CLI
+
+```
+
+
+npxthirdwebcreateapp--legacy-peer-deps
+
+
+
+
+
+
+
+
+
+```
+
+or clone the the Next.js or Vite starter repo:
+
+[### Next.js + thirdweb starter repo](https://github.com/thirdweb-example/next-starter)[### Vite + thirdweb starter repo](https://github.com/thirdweb-example/vite-starter)
+
+Usage
+-----
+
+[](https://portal.thirdweb.com/react/v5#usage)
+
+Many of the components and hooks in the React SDK use a [`client`](https://portal.thirdweb.com/typescript/v5/core/client) to interface with the core SDK and your private RPC endpoints. You'll need to create a `clientId` in the [Dashboard](https://thirdweb.com/create-api-key) to generate this client.
+
+[### TypeScript Follow the TypeScript docs for functions and types](https://portal.thirdweb.com/typescript/v5/client)[### ThirdwebProvider Setup the ThirdwebProvider](https://portal.thirdweb.com/react/v5/ThirdwebProvider)[### Connecting Wallets Connect wallets using ConnectButton, ConnectEmbed or useConnect hook](https://portal.thirdweb.com/react/v5/connecting-wallets)[### Supported Wallets See all 350+ wallets supported by the Connect SDK](https://portal.thirdweb.com/typescript/v5/supported-wallets)[### UI Components UI components for wallet connection and transactions](https://portal.thirdweb.com/react/v5/connecting-wallets/ui-components)[### Hooks Hooks for wallet connection and transactions](https://portal.thirdweb.com/react/v5/connecting-wallets/hooks)
+
+[Edit this page](https://github.com/thirdweb-dev/js/edit/main/apps/portal/src/app/react/v5/page.mdx)
+
+Was this page helpful?
+
+YesNo
+
+*   Need help?
+    
+    [Visit our support site](https://thirdweb.com/support)
+*   Watch our
+    
+    [Video Tutorials](https://www.youtube.com/@thirdweb_)
+*   View our
+    
+    [Changelog](https://portal.thirdweb.com/changelog)
+
+Subscribe for the latest dev updates
+
+Subscribe
+
+On this page
+
+*   [Quickstart](https://portal.thirdweb.com/react/v5#quickstart)
+*   [Starter kits](https://portal.thirdweb.com/react/v5#starter-kits)
+*   [Usage](https://portal.thirdweb.com/react/v5#usage)
