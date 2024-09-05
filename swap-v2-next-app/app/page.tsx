@@ -28,7 +28,7 @@ function Page() {
     <div
       className={`flex min-h-screen flex-col items-center justify-between p-24`}
     >
-      <ConnectButton wallets={thirdwebWallets} client={client} />;
+      {/* <ConnectButton wallets={thirdwebWallets} client={client} />; */}
 
       {finalize && price ? (
         <QuoteView

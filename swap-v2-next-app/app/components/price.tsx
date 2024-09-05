@@ -1,20 +1,20 @@
 import { useEffect, useState, ChangeEvent } from "react";
 import { toUnits, toTokens, waitForReceipt } from "thirdweb";
 import {
-  ConnectButton,
   useActiveAccount,
   useActiveWalletChain,
   useEstimateGas,
   useReadContract,
   useSendTransaction,
   useWalletBalance,
-  useWaitForReceipt
+  useWaitForReceipt,
+  ConnectButton
 } from "thirdweb/react";
 import {
   getContract,
   prepareContractCall,
 } from "thirdweb";
-import { Address } from "viem";
+import { Address, labelhash } from "viem";
 import {
   PERMIT2_ADDRESS,
   MAINNET_TOKENS,
@@ -29,8 +29,6 @@ import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
 import { client } from "../providers";
-import { erc20Abi } from "../../src/utils/erc20abi";
-import { balanceOf } from "thirdweb/extensions/erc20";
 import { WaitForReceiptOptions } from "thirdweb/transaction";
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
@@ -114,14 +112,13 @@ export default function PriceView({
       ? toUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
 
-  const { mutate: estimateGas } = useEstimateGas();
-
   const { data: balance } = useWalletBalance({
     client,
     address: activeAccount?.address,
     chain: activeChain,
-    token: sellTokenAddress
+    tokenAddress: sellTokenAddress
   });
+  console.log("balance: ", balance);
 
   const inSufficientBalance =
     balance && sellAmount
@@ -178,7 +175,10 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton client={client} />
+        <ConnectButton
+          connectModal={{ title: "Connect Wallet to Halal.io", size: "wide", welcomeScreen: { title: "Welcome to Halal.io", subtitle: "Find all the Halal Token", img: { src: "https://knowledgbase.s3.eu-west-3.amazonaws.com/output-onlinepngtools+(5)+(1).png", width: 200, height: 200 } } }}
+          client={client}
+        />
       </header>
 
       <div className="container mx-auto p-10">
@@ -338,14 +338,14 @@ export default function PriceView({
     price: any;
   }) {
     const spender = price?.issues?.allowance?.spender || PERMIT2_ADDRESS;
-  
+
     const contract = getContract({
       address: sellTokenAddress,
       client,
       chain: activeChain
     });
-  
-    const { data: allowanceData  } = useReadContract(
+
+    const { data: allowanceData } = useReadContract(
       {
         contract,
         method: "allowance",
@@ -356,33 +356,34 @@ export default function PriceView({
 
     const { mutate: sendTransaction } = useSendTransaction();
     const { mutate: estimateGas } = useEstimateGas();
-  
+    console.log("estimateGas: ", estimateGas);
+
     const [isApproving, setIsApproving] = useState(false);
-  
+
 
     const handleApprove = async () => {
       setIsApproving(true);
       try {
-        
+
         const transaction = prepareContractCall({
           contract,
           method: "function approve(address spender, uint256 amount) returns (bool)",
           params: [spender, MAX_ALLOWANCE],
         });
-    
+
         const gasEstimate = await estimateGas(transaction);
         console.log("Estimated gas:", gasEstimate);
-    
+
         const result = await sendTransaction(transaction);
         console.log("Approval transaction sent:", result);
-    
+
         if (typeof result === 'string') {
           const waitOptions: WaitForReceiptOptions = {
             transactionHash: result as `0x${string}`,
             client,
             chain: activeChain,
           };
-    
+
           const receipt = await waitForReceipt(waitOptions);
           console.log("Approval transaction confirmed:", receipt);
         } else {
