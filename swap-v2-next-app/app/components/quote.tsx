@@ -13,6 +13,7 @@ import {
   MAINNET_TOKENS_BY_ADDRESS,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
+  POLYGON_TOKENS_BY_ADDRESS,
 } from "../../src/constants";
 import Image from "next/image";
 import qs from "qs";
@@ -31,10 +32,14 @@ export default function QuoteView({
   chainId: number;
 }) {
   console.log("price", price);
+  const tokensByAddress = chainId === 137 ? POLYGON_TOKENS_BY_ADDRESS : MAINNET_TOKENS_BY_ADDRESS;
 
   const sellTokenInfo = (chainId: number) => {
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
+    }
+    if (chainId === 137) {
+      return POLYGON_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
     }
     return MAINNET_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
   };
@@ -43,9 +48,11 @@ export default function QuoteView({
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
     }
+    if (chainId === 137) {
+      return POLYGON_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
+    }
     return MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
   };
-
   const { signTypedDataAsync } = useSignTypedData();
   const { data: walletClient } = useWalletClient();
 
@@ -123,11 +130,11 @@ export default function QuoteView({
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <img
               alt={
-                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].symbol
+                tokensByAddress[price.buyToken.toLowerCase()].symbol
               }
               className="h-9 w-9 mr-2 rounded-md"
               src={
-                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].logoURI
+                tokensByAddress[price.buyToken.toLowerCase()].logoURI
               }
             />
             <span>

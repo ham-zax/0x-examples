@@ -132,15 +132,27 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
 };
-/* weth: {
-  chainId: 1,
-  name: "Wrapped Ether",
-  symbol: "WETH",
-  decimals: 18,
-  address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-  logoURI:
-    "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/weth.svg",
-}, */
+export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+  },
+  "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+};
+
 export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
 {
   matic: {

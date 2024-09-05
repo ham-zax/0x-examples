@@ -1,4 +1,4 @@
-import { useEffect, useState, ChangeEvent } from "react";
+import { useEffect, useState, ChangeEvent, useCallback } from "react";
 import { toUnits, toTokens } from "thirdweb";
 import { ConnectButton, useActiveAccount, useActiveWalletChain, useEstimateGas } from "thirdweb/react";
 import {
@@ -381,11 +381,21 @@ export default function PriceView({
     price: any;
   }) {
     const spender = exchangeProxy(chainId);
-
-
+  
     // Read allowance
     const [allowance, setAllowance] = useState<bigint>(BigInt(0));
 
+    useEffect(() => {
+      const updateAllowance = async () => {
+        if (taker && spender && sellTokenAddress) {
+          const newAllowance = await fetchAllowance();
+          setAllowance(newAllowance);
+        }
+      };
+    
+      updateAllowance();
+    }, [taker, spender, sellTokenAddress]);
+    
     const fetchAllowance = async () => {
       if (taker && spender && sellTokenAddress && activeChain) {
         const contract = getContract({
@@ -394,13 +404,16 @@ export default function PriceView({
           client,
           chain: activeChain
         });
+    
         try {
           const result = await readContract({
             contract,
             method: "allowance",
             params: [taker, spender],
           });
-          return BigInt(result);
+    
+          // The result should be a bigint, but we'll convert it just in case
+          return BigInt(result.toString());
         } catch (error) {
           console.error("Error fetching allowance:", error);
           return BigInt(0);
@@ -408,15 +421,17 @@ export default function PriceView({
       }
       return BigInt(0);
     };
+    
+  
     useEffect(() => {
       if (taker && spender && sellTokenAddress) {
         fetchAllowance();
       }
     }, [taker, spender, sellTokenAddress]);
+  
     // Send transaction for approval
-
     const [isApproving, setIsApproving] = useState(false);
-
+  
     const handleApprove = async () => {
       setIsApproving(true);
       try {
@@ -426,33 +441,40 @@ export default function PriceView({
         if (!activeAccount) {
           throw new Error("No active account");
         }
-
+    
         const contract = getContract({
           address: sellTokenAddress,
           abi: erc20Abi,
           client,
           chain: activeChain
         });
-
+    
         const preparedCall = await prepareContractCall({
           contract,
           method: "approve",
           params: [spender, MAX_ALLOWANCE],
         });
-
+    
         const result = await sendTransaction({
           transaction: preparedCall,
           account: activeAccount,
         });
-
+    
         console.log("Approval transaction sent:", result.transactionHash);
-
+    
         // Wait for transaction confirmation
-        const receipt = await waitForReceipt(result);
+        const receipt = await waitForReceipt({
+          transactionHash: result.transactionHash,
+          chain: activeChain,
+          client,
+        });
+    
         console.log("Approval transaction confirmed:", receipt);
-
         // Refetch allowance after approval
-        await fetchAllowance();
+        fetchAllowance();
+        // Trigger the next step or update the state as needed
+        onClick();
+    
       } catch (error) {
         console.error("Approval failed:", error);
         // Handle the error (e.g., show an error message to the user)
@@ -460,8 +482,8 @@ export default function PriceView({
         setIsApproving(false);
       }
     };
-
-    if (parsedSellAmount && allowance < parsedSellAmount) {
+    
+    if (parsedSellAmount && allowance < BigInt(parsedSellAmount)) {
       return (
         <button
           type="button"
@@ -473,7 +495,7 @@ export default function PriceView({
         </button>
       );
     }
-
+  
     return (
       <button
         type="button"
@@ -483,7 +505,6 @@ export default function PriceView({
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
-
     );
   }
 }
