@@ -51,6 +51,27 @@ export const MAINNET_TOKENS: Token[] = [
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
 ];
+export const POLYGON_TOKENS: Token[] = [
+  {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+    
+  },
+  {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+];
 
 export const MAINNET_TOKENS_BY_SYMBOL: Record<string, Token> = {
   weth: {
@@ -111,3 +132,46 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
 };
+export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+  },
+  "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+};
+
+export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
+{
+  matic: {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+    
+  },
+  usdc: {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+}
