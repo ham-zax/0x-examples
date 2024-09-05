@@ -411,11 +411,16 @@ export default function PriceView({
             method: "allowance",
             params: [taker, spender],
           });
-    
-          // The result should be a bigint, but we'll convert it just in case
+        
+          if (result === null || result === undefined || (typeof result === 'string' && result === '0x')) {
+            console.log('Allowance returned zero data');
+            return BigInt(0);
+          }
+        
           return BigInt(result.toString());
         } catch (error) {
-          console.error("Error fetching allowance:", error);
+          console.error('Error fetching allowance:', error);
+          // Handle the error appropriately
           return BigInt(0);
         }
       }
