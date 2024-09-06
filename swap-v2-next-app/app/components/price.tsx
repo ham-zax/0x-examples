@@ -46,12 +46,15 @@ export default function PriceView({
   setPrice,
   setFinalize,
   chainId,
+  setQuote
 }: {
   price: any;
   taker: Address | undefined;
   setPrice: (price: any) => void;
   setFinalize: (finalize: boolean) => void;
   chainId: number;
+  setQuote: (quote: any) => void; // Add this prop type
+
 }) {
   const [sellToken, setSellToken] = useState("weth");
   const [buyToken, setBuyToken] = useState("usdc");
@@ -125,18 +128,23 @@ export default function PriceView({
       ? toUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
 
-  const { data: balance } = useWalletBalance({
+  const { data: balance, isLoading, isError } = useWalletBalance({
+    client,
+    address: activeAccount?.address,
+    chain: activeChain,
+  });
+  console.log("data: ", {
     client,
     address: activeAccount?.address,
     chain: activeChain,
     tokenAddress: sellTokenAddress
   });
-  console.log("balance: ", balance);
+  console.log("balance: ", balance, isLoading, isError);
 
   const inSufficientBalance =
-  balance && sellAmount
-    ? toUnits(sellAmount, sellTokenDecimals) > balance.value
-    : true;
+    balance && sellAmount
+      ? toUnits(sellAmount, sellTokenDecimals) > balance.value
+      : true;
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
     const params = {
@@ -164,6 +172,7 @@ export default function PriceView({
       if (data.buyAmount) {
         setBuyAmount(toTokens(data.buyAmount, buyTokenDecimals));
         setPrice(data);
+        setQuote(data); // Set the quote state when fetching price data
       }
     }
 
@@ -377,82 +386,15 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    const spender = price?.issues?.allowance?.spender || PERMIT2_ADDRESS;
-
-        const contract = getContract({
-          address: sellTokenAddress,
-          client,
-          chain: activeChain
-        });
-    
-    const { data: allowanceData } = useReadContract(
-      {
-            contract,
-            method: "allowance",
-        params: [taker, spender]
-      }
-    );
-    const allowance = allowanceData ? BigInt(allowanceData.toString()) : BigInt(0);
-
-    const { mutate: sendTransaction } = useSendTransaction();
-    const { mutate: estimateGas } = useEstimateGas();
-    console.log("estimateGas: ", estimateGas);
-
-    const [isApproving, setIsApproving] = useState(false);
-  
-
-    const handleApprove = async () => {
-      setIsApproving(true);
-      try {
-
-        const transaction = prepareContractCall({
-          contract,
-          method: "function approve(address spender, uint256 amount) returns (bool)",
-          params: [spender, MAX_ALLOWANCE],
-        });
-    
-        const gasEstimate = await estimateGas(transaction);
-        console.log("Estimated gas:", gasEstimate);
-
-        const result = await sendTransaction(transaction);
-        console.log("Approval transaction sent:", result);
-    
-        if (typeof result === 'string') {
-          const waitOptions: WaitForReceiptOptions = {
-            transactionHash: result as `0x${string}`,
-          client,
-            chain: activeChain,
-          };
-    
-          const receipt = await waitForReceipt(waitOptions);
-        console.log("Approval transaction confirmed:", receipt);
-        } else {
-          console.error("Unexpected result from sendTransaction:", result);
-        }
-      } catch (error) {
-        console.error("Approval failed:", error);
-      } finally {
-        setIsApproving(false);
-      }
+    const handleClick = async () => {
+      onClick();
     };
-    if (parsedSellAmount && allowance < parsedSellAmount) {
-      return (
-        <button
-          type="button"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-          onClick={handleApprove}
-          disabled={isApproving}
-        >
-          {isApproving ? "Approving…" : "Approve"}
-        </button>
-      );
-    }
 
     return (
       <button
         type="button"
         disabled={disabled}
-        onClick={onClick}
+        onClick={handleClick}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}

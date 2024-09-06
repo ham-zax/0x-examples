@@ -21,11 +21,11 @@ function Page() {
   const [finalize, setFinalize] = useState(false);
   const [price, setPrice] = useState<PriceResponse | undefined>();
   const [quote, setQuote] = useState();
+  
   return (
     <div
       className={`flex min-h-screen flex-col items-center justify-between p-24`}
     >
-
       {finalize && price ? (
         <QuoteView
           taker={activeAccount?.address}
@@ -41,6 +41,7 @@ function Page() {
           setPrice={setPrice}
           setFinalize={() => setFinalize(true)}
           chainId={chainId}
+          setQuote={setQuote} // Pass the setQuote function
         />
       )}
     </div>
