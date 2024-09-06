@@ -1,12 +1,14 @@
 "use client";
-
 import PriceView from "./components/price";
 import QuoteView from "./components/quote";
-
+import ZeroExLogo from "../src/images/white-0x-logo.png";
+import Image from "next/image";
 import { useState } from "react";
 
 import type { PriceResponse } from "../src/utils/types";
-import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
+import { ConnectButton, useActiveAccount, useActiveWalletChain } from "thirdweb/react";
+import { client } from "./providers";
+import { base, ethereum, polygon } from "thirdweb/chains";
 // Page.tsx
 function Page() {
   // const { address } = useAccount();
@@ -24,8 +26,40 @@ function Page() {
   
   return (
     <div
-      className={`flex min-h-screen flex-col items-center justify-between p-24`}
+      className={`flex min-h-screen flex-col items-center  p-24`}
     >
+      
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
+     {/*    <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
+          <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
+        </a> */}
+        <ConnectButton
+          chains={[polygon, ethereum, base]}
+          theme={"light"}
+          detailsModal={
+          
+            {
+          /*     footer: ({ close }) => (
+                <button onClick={close} className="text-white">
+                  Close
+                </button>
+              ),
+ */
+              hideSwitchWallet: false,
+            }
+          }
+          
+          connectModal={{ showThirdwebBranding:false, title: "Connect Wallet to Halal.io", size: "wide", welcomeScreen: { title: "Welcome to Halal.io", subtitle: "Find all the Halal Token", img: { src: "https://knowledgbase.s3.eu-west-3.amazonaws.com/output-onlinepngtools+(5)+(1).png",  width: 200, height: 200 } } }}
+          client={client}
+          
+        />
+      </header>
+      
       {finalize && price ? (
         <QuoteView
           taker={activeAccount?.address}

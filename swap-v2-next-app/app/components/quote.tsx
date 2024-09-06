@@ -112,7 +112,7 @@ export default function QuoteView({
           <div className="text-xl mb-2 text-white">You pay</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <Image
-              alt={sellTokenInfo(chainId).symbol}
+              alt="test"
               className="h-9 w-9 mr-2 rounded-md"
               src={sellTokenInfo(chainId || 1)?.logoURI}
               width={9}

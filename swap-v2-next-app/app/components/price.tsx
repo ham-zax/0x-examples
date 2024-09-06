@@ -199,7 +199,11 @@ export default function PriceView({
     FEE_RECIPIENT,
     AFFILIATE_FEE,
   ]);
-
+  const swapTokens = () => {
+    const tempSellToken = sellToken;
+    setSellToken(buyToken);
+    setBuyToken(tempSellToken);
+  };
   // Hook for fetching balance information for specified token for a specific taker address
   /*   const { data, isError, isLoading } = useBalance({
       address: taker,
@@ -214,21 +218,6 @@ export default function PriceView({
 
   return (
     <div>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
-        <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
-          <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
-        </a>
-        <ConnectButton
-          connectModal={{ title: "Connect Wallet to Halal.io", size: "wide", welcomeScreen: { title: "Welcome to Halal.io", subtitle: "Find all the Halal Token", img: { src: "https://knowledgbase.s3.eu-west-3.amazonaws.com/output-onlinepngtools+(5)+(1).png", width: 200, height: 200 } } }}
-          client={client}
-        />
-      </header>
-
       <div className="container mx-auto p-10">
         <header className="text-center py-4">
           <h1 className="text-3xl font-bold">0x Swap Demo</h1>
@@ -296,6 +285,13 @@ export default function PriceView({
               }}
             />
           </section>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-4 mb-4"
+            onClick={swapTokens}
+          >
+            Swap Tokens
+          </button>
+
           <label htmlFor="buy" className="text-gray-300 mb-2 mr-2">
             Buy
           </label>
