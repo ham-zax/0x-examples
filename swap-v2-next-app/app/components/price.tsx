@@ -326,8 +326,9 @@ export default function PriceView({
 
           {/* Affiliate Fee Display */}
           <div className="text-slate-400">
-            {price && price.fees && price.fees.integratorFee && price.fees.integratorFee.amount
-              ? "Affiliate Fee: " +
+
+            {price?.fees?.integratorFee?.amount ? (
+              "Affiliate Fee: " +
               Number(
                 formatUnits(
                   BigInt(price.fees.integratorFee.amount),
@@ -335,7 +336,7 @@ export default function PriceView({
                 )
               ) +
               " " +
-              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
+              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol)
               : null}
 
           </div>
@@ -357,7 +358,7 @@ export default function PriceView({
           </div>
         </div>
 
-        {taker && sellAmount !== "" ? (
+        {taker ? (
           <ApproveOrReviewButton
             taker={taker}
             onClick={() => {
@@ -389,8 +390,9 @@ export default function PriceView({
   }) {
     const [allowance, setAllowance] = useState<bigint | null>(null);
     const [isApproving, setIsApproving] = useState(false);
+    const hasAllowanceIssue = price?.issues?.allowance !== null && price?.issues?.allowance !== undefined;
 
-    if (!price || !price.issues || !price.issues.allowance) {
+    if (!hasAllowanceIssue) {
       // No price data or no allowance issues; show "Review Trade" button
       return (
         <button
