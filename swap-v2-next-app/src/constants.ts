@@ -2,6 +2,7 @@ import { Address } from "thirdweb/utils";
 
 
 export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+export const NATIVE_TOKEN_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 export const MAGIC_CALLDATA_STRING = "f".repeat(130); // used when signing the eip712 message
 
@@ -58,7 +59,7 @@ export const POLYGON_TOKENS: Token[] = [
     name: "MATIC",
     symbol: "MATIC",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     
@@ -104,7 +105,7 @@ export const MAINNET_TOKENS_BY_SYMBOL: Record<string, Token> = {
   },
 };
 
-export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
+export const MAINNET_TOKENS_BY_ADDRESS: Record<`0x${string}`, Token> = {
   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
     chainId: 1,
     name: "Wrapped Ether",
@@ -133,13 +134,13 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
 };
-export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
-  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+export const POLYGON_TOKENS_BY_ADDRESS: Record<`0x${string}`, Token> = {
+  [NATIVE_TOKEN_ADDRESS]: {
     chainId: 137,
     name: "MATIC",
     symbol: "MATIC",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
   },
@@ -161,7 +162,7 @@ export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
     name: "MATIC",
     symbol: "MATIC",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     
