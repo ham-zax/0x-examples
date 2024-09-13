@@ -1,8 +1,4 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { ethers, formatUnits, parseUnits, isAddress } from "ethers";
-import {
-  useBalance,
-} from "wagmi";
 import { erc20Abi, Address } from "viem";
 import {
   MAINNET_TOKENS,
@@ -14,10 +10,11 @@ import {
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
-import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain } from "thirdweb/react";
+import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain, useReadContract, useSendTransaction, useWalletBalance } from "thirdweb/react";
 import { client } from "../providers";
-import { toTokens } from "thirdweb";
-import { ethers6Adapter } from "thirdweb/adapters/ethers6";
+import { getContract, prepareContractCall, toTokens } from "thirdweb";
+import { toUnits } from "thirdweb";
+import { approve, allowance } from "thirdweb/extensions/erc20";
 
 import { ethereum } from "thirdweb/chains";
 
@@ -56,46 +53,6 @@ export default function PriceView({
     buyTaxBps: "0",
     sellTaxBps: "0",
   });
-  const activeWallet = useActiveWallet();
-  const activeChain = useActiveWalletChain();
-  const activeAccount = useActiveAccount();
-
-  // Ensure activeWallet and activeChain are defined
-  const isWalletConnected = activeAccount !== undefined;
-  const isChainDefined = activeChain !== undefined;
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [provider, setProvider] = useState<ethers.Provider | null>(null);
-
-
-  useEffect(() => {
-    async function getSignerAndProvider() {
-      if (isWalletConnected && isChainDefined) {
-        const ethersSigner = await ethers6Adapter.signer.toEthers({
-          client,
-          chain: activeChain,
-          account: activeAccount,
-        });
-        setSigner(ethersSigner);
-
-        const ethersProvider = ethers6Adapter.provider.toEthers({
-          client,
-          chain: activeChain,
-        });
-        setProvider(ethersProvider);
-      }
-    }
-    getSignerAndProvider();
-  }, [activeAccount, activeChain, client, isWalletConnected, isChainDefined]);
-
-
-  const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSellToken(e.target.value);
-  };
-
-  const handleBuyTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setBuyToken(e.target.value);
-  };
-
 
   const tokensByChain = (chainId: number) => {
     if (chainId === 1) {
@@ -112,14 +69,44 @@ export default function PriceView({
   const buyTokenDecimals = buyTokenObject.decimals;
   const sellTokenAddress = sellTokenObject.address;
 
+  const activeWallet = useActiveWallet();
+  const activeChain = useActiveWalletChain();
+  const activeAccount = useActiveAccount();
+  const {
+    data: balanceData,
+    isError,
+    isLoading,
+  } = useWalletBalance({
+    client,
+    chain: activeChain,
+    address: taker,
+    tokenAddress: sellTokenObject.address,
+  });
+
+  // Ensure activeWallet and activeChain are defined
+  const isWalletConnected = activeAccount !== undefined;
+  const isChainDefined = activeChain !== undefined;
+
+
+
+  const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSellToken(e.target.value);
+  };
+
+  const handleBuyTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setBuyToken(e.target.value);
+  };
+
+
+
   const parsedSellAmount =
     sellAmount && tradeDirection === "sell"
-      ? parseUnits(sellAmount, sellTokenDecimals).toString()
+      ? toUnits(sellAmount, sellTokenDecimals).toString()
       : undefined;
 
   const parsedBuyAmount =
     buyAmount && tradeDirection === "buy"
-      ? parseUnits(buyAmount, buyTokenDecimals).toString()
+      ? toUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
   console.log("taker:", taker);
   console.log("price:", price);
@@ -179,17 +166,12 @@ export default function PriceView({
 
 
   // Hook for fetching balance information for specified token for a specific taker address
-  const { data, isError, isLoading } = useBalance({
-    address: taker,
-    token: sellTokenObject.address,
-  });
-
-  console.log("taker sellToken balance: ", data);
 
   const inSufficientBalance =
-    data && sellAmount
-      ? parseUnits(sellAmount, sellTokenDecimals) > data.value
+    balanceData && sellAmount
+      ? BigInt(toUnits(sellAmount, sellTokenDecimals)) > balanceData.value
       : true;
+
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
@@ -330,7 +312,7 @@ export default function PriceView({
             {price?.fees?.integratorFee?.amount ? (
               "Affiliate Fee: " +
               Number(
-                formatUnits(
+                toTokens(
                   BigInt(price.fees.integratorFee.amount),
                   MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
                 )
@@ -338,6 +320,7 @@ export default function PriceView({
               " " +
               MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol)
               : null}
+
 
           </div>
 
@@ -367,7 +350,10 @@ export default function PriceView({
             sellTokenAddress={sellTokenAddress}
             disabled={inSufficientBalance}
             price={price}
+            client={client}
+            activeChain={activeChain}
           />
+
         ) : (
           <div>Loading price data...</div>
         )}
@@ -375,25 +361,55 @@ export default function PriceView({
     </div>
   );
 
+
+
   function ApproveOrReviewButton({
     taker,
     onClick,
     sellTokenAddress,
     disabled,
     price,
-  }: {
-    taker: Address;
-    onClick: () => void;
-    sellTokenAddress: Address;
-    disabled?: boolean;
-    price: any;
+    client,
+    activeChain,
   }) {
-    const [allowance, setAllowance] = useState<bigint | null>(null);
-    const [isApproving, setIsApproving] = useState(false);
-    const hasAllowanceIssue = price?.issues?.allowance !== null && price?.issues?.allowance !== undefined;
+    const hasAllowanceIssue =
+      price?.issues?.allowance !== null && price?.issues?.allowance !== undefined;
+    const spender = price?.issues?.allowance?.spender;
+
+    const contract = getContract({
+      client,
+      chain: activeChain,
+      address: sellTokenAddress,
+    });
+
+    const {
+      data: allowanceData,
+      isLoading: isAllowanceLoading,
+      error: allowanceError,
+    } = useReadContract(allowance, {
+      contract,
+      owner: taker,
+      spender: spender,
+    });
+
+    const { mutateAsync: sendTransaction, status } = useSendTransaction();
+    const isApproving = status === "pending";
+
+    const handleApprove = async () => {
+      const transaction = approve({
+        contract,
+        spender,
+        amount: balanceData ? balanceData.value.toString() : "0",
+      });
+
+      try {
+        await sendTransaction(transaction);
+      } catch (error) {
+        console.error("Error during approval:", error);
+      }
+    };
 
     if (!hasAllowanceIssue) {
-      // No price data or no allowance issues; show "Review Trade" button
       return (
         <button
           type="button"
@@ -406,60 +422,11 @@ export default function PriceView({
       );
     }
 
-    // Proceed to handle allowance if price.issues.allowance exists
-    const spender = price.issues.allowance.spender;
-
-    useEffect(() => {
-      async function checkAllowance() {
-        if (
-          signer &&
-          provider &&
-          taker &&
-          isAddress(taker) &&
-          spender &&
-          isAddress(spender)
-        ) {
-          const contract = new ethers.Contract(
-            sellTokenAddress,
-            erc20Abi,
-            provider
-          );
-          try {
-            const currentAllowance = await contract.allowance(taker, spender);
-            setAllowance(currentAllowance);
-          } catch (error) {
-            console.error("Error fetching allowance:", error);
-          }
-        } else {
-          console.warn("Cannot check allowance. Missing or invalid data.");
-          console.log("taker:", taker);
-          console.log("spender:", spender);
-        }
-      }
-      checkAllowance();
-    }, [signer, provider, taker, spender, sellTokenAddress]);
-
-    const handleApprove = async () => {
-      setIsApproving(true);
-      const contract = new ethers.Contract(sellTokenAddress, erc20Abi, signer);
-      try {
-        const tx = await contract.approve(spender, MAX_ALLOWANCE);
-        await tx.wait();
-        // Update allowance after approval
-        const newAllowance = await contract.allowance(taker, spender);
-        setAllowance(newAllowance);
-        setIsApproving(false);
-      } catch (error) {
-        console.error("Error during approval:", error);
-        setIsApproving(false);
-      }
-    };
-
-    if (allowance === null) {
+    if (isAllowanceLoading) {
       return <div>Checking allowance...</div>;
     }
 
-    if (allowance === BigInt(0)) {
+    if (allowanceData === undefined || allowanceData === BigInt(0)) {
       return (
         <button
           type="button"
@@ -482,5 +449,6 @@ export default function PriceView({
       </button>
     );
   }
+
 
 }
