@@ -18,6 +18,7 @@ import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain 
 import { client } from "../providers";
 import { toTokens } from "thirdweb";
 import { ethers6Adapter } from "thirdweb/adapters/ethers6";
+
 import { ethereum } from "thirdweb/chains";
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
@@ -69,7 +70,6 @@ export default function PriceView({
   useEffect(() => {
     async function getSignerAndProvider() {
       if (isWalletConnected && isChainDefined) {
-        // Convert thirdweb wallet to ethers.js signer
         const ethersSigner = await ethers6Adapter.signer.toEthers({
           client,
           chain: activeChain,
@@ -77,7 +77,6 @@ export default function PriceView({
         });
         setSigner(ethersSigner);
 
-        // Get ethers.js provider from thirdweb
         const ethersProvider = ethers6Adapter.provider.toEthers({
           client,
           chain: activeChain,
@@ -86,7 +85,7 @@ export default function PriceView({
       }
     }
     getSignerAndProvider();
-  }, [activeWallet, activeChain, client, isWalletConnected, isChainDefined]);
+  }, [activeAccount, activeChain, client, isWalletConnected, isChainDefined]);
 
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -124,7 +123,7 @@ export default function PriceView({
       : undefined;
   console.log("taker:", taker);
   console.log("price:", price);
-  console.log("price?.allowanceTarget:", price?.allowanceTarget);
+  console.log("price?.issues.allowance:", price?.issues?.allowance);
 
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
@@ -355,7 +354,7 @@ export default function PriceView({
           </div>
         </div>
 
-        {price && price.allowanceTarget && activeAccount ? (
+        {price && activeAccount ? (
           <ApproveOrReviewButton
             taker={activeAccount.address}
             onClick={() => {
@@ -385,9 +384,9 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    const [allowance, setAllowance] = useState(null);
+    const [allowance, setAllowance] = useState<bigint | null>(null);
     const [isApproving, setIsApproving] = useState(false);
-
+    const spender = price?.issues?.allowance?.spender;
     useEffect(() => {
       async function checkAllowance() {
         if (
@@ -395,9 +394,8 @@ export default function PriceView({
           provider &&
           taker &&
           isAddress(taker) &&
-          price &&
-          price.allowanceTarget &&
-          isAddress(price.allowanceTarget)
+          spender &&
+          isAddress(spender)
         ) {
           const contract = new ethers.Contract(
             sellTokenAddress,
@@ -405,52 +403,58 @@ export default function PriceView({
             provider
           );
           try {
-            const allowance = await contract.allowance(
-              taker,
-              price.allowanceTarget
-            );
-            setAllowance(allowance);
+            const currentAllowance = await contract.allowance(taker, spender);
+            setAllowance(currentAllowance);
           } catch (error) {
             console.error("Error fetching allowance:", error);
           }
         } else {
-          console.warn("Cannot check allowance. Missing or invalid taker or allowanceTarget.");
+          console.warn("Cannot check allowance. Missing or invalid data.");
           console.log("taker:", taker);
-          console.log("price:", price);
-          console.log("price.allowanceTarget:", price?.allowanceTarget);
+          console.log("spender:", spender);
         }
       }
       checkAllowance();
-    }, [signer, provider, taker, price]);
-
-
-
+    }, [signer, provider, taker, spender, sellTokenAddress]);
+  
     const handleApprove = async () => {
       setIsApproving(true);
-      const contract = new ethers.Contract(
-        sellTokenAddress,
-        erc20Abi,
-        signer
-      );
-      const tx = await contract.approve(
-        price?.allowanceTarget,
-        MAX_ALLOWANCE
-      );
-      await tx.wait();
-      setIsApproving(false);
-      // Update allowance after approval
-      const newAllowance = await contract.allowance(
-        taker,
-        price?.allowanceTarget
-      );
-      setAllowance(newAllowance);
+      const contract = new ethers.Contract(sellTokenAddress, erc20Abi, signer);
+      try {
+        const tx = await contract.approve(spender, MAX_ALLOWANCE);
+        await tx.wait();
+        setIsApproving(false);
+        // Update allowance after approval
+        const newAllowance = await contract.allowance(taker, spender);
+        setAllowance(newAllowance);
+      } catch (error) {
+        console.error("Error during approval:", error);
+        setIsApproving(false);
+      }
     };
-
-    if (allowance === null) {
-      return <div>Loading allowance...</div>;
+  
+    if (!price || !spender) {
+      return <div>Loading price data...</div>;
     }
-
-    if (allowance.eq(0)) {
+  
+    if (price?.issues?.allowance === null) {
+      return (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClick}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+        >
+          {disabled ? "Insufficient Balance" : "Review Trade"}
+        </button>
+      );
+    }
+  
+    if (allowance === null) {
+      return <div>Checking allowance...</div>;
+    }
+  
+    if (allowance !== null && allowance === 0n) {
       return (
         <button
           type="button"
@@ -461,7 +465,7 @@ export default function PriceView({
         </button>
       );
     }
-
+  
     return (
       <button
         type="button"
@@ -473,5 +477,6 @@ export default function PriceView({
       </button>
     );
   }
+  
 
 }
