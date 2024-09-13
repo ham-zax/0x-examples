@@ -386,7 +386,27 @@ export default function PriceView({
   }) {
     const [allowance, setAllowance] = useState<bigint | null>(null);
     const [isApproving, setIsApproving] = useState(false);
-    const spender = price?.issues?.allowance?.spender;
+  
+    if (!price) {
+      return <div>Loading price data...</div>;
+    }
+  
+    if (!price.issues || !price.issues.allowance) {
+      // No allowance issues, show Review Trade button
+      return (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClick}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+        >
+          {disabled ? "Insufficient Balance" : "Review Trade"}
+        </button>
+      );
+    }
+  
+    const spender = price.issues.allowance.spender;
+  
     useEffect(() => {
       async function checkAllowance() {
         if (
@@ -423,38 +443,21 @@ export default function PriceView({
       try {
         const tx = await contract.approve(spender, MAX_ALLOWANCE);
         await tx.wait();
-        setIsApproving(false);
         // Update allowance after approval
         const newAllowance = await contract.allowance(taker, spender);
         setAllowance(newAllowance);
+        setIsApproving(false);
       } catch (error) {
         console.error("Error during approval:", error);
         setIsApproving(false);
       }
     };
   
-    if (!price || !spender) {
-      return <div>Loading price data...</div>;
-    }
-  
-    if (price?.issues?.allowance === null) {
-      return (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onClick}
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
-        >
-          {disabled ? "Insufficient Balance" : "Review Trade"}
-        </button>
-      );
-    }
-  
     if (allowance === null) {
       return <div>Checking allowance...</div>;
     }
   
-    if (allowance !== null && allowance === 0n) {
+    if (allowance === BigInt(0)) {
       return (
         <button
           type="button"
@@ -477,6 +480,4 @@ export default function PriceView({
       </button>
     );
   }
-  
-
 }
