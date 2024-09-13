@@ -1,18 +1,16 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { erc20Abi, Address } from "viem";
+import { Address } from "viem";
 import {
   MAINNET_TOKENS,
-  MAINNET_TOKENS_BY_SYMBOL,
-  MAX_ALLOWANCE,
-  AFFILIATE_FEE,
-  FEE_RECIPIENT,
+  MAINNET_TOKENS_BY_SYMBOL, AFFILIATE_FEE,
+  FEE_RECIPIENT
 } from "../../src/constants";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
 import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain, useReadContract, useSendTransaction, useWalletBalance } from "thirdweb/react";
 import { client } from "../providers";
-import { getContract, prepareContractCall, toTokens } from "thirdweb";
+import { getContract, toTokens } from "thirdweb";
 import { toUnits } from "thirdweb";
 import { approve, allowance } from "thirdweb/extensions/erc20";
 
@@ -371,7 +369,18 @@ export default function PriceView({
     price,
     client,
     activeChain,
-  }) {
+  }:
+    {
+      taker: Address;
+      onClick: () => void;
+      sellTokenAddress: Address;
+      disabled?: boolean;
+      price: any;
+      client: any;
+      activeChain: any;
+
+
+    }) {
     const hasAllowanceIssue =
       price?.issues?.allowance !== null && price?.issues?.allowance !== undefined;
     const spender = price?.issues?.allowance?.spender;
@@ -421,7 +430,6 @@ export default function PriceView({
         </button>
       );
     }
-
     if (isAllowanceLoading) {
       return <div>Checking allowance...</div>;
     }
