@@ -195,7 +195,7 @@ export default function PriceView({
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
   console.log('price ' + JSON.stringify(price));
   console.log('taker ' + JSON.stringify(taker));
-  console.log('activeAccount.address ' + JSON.stringify(activeAccount?.address));
+  console.log('activeAccount ' + JSON.stringify(activeAccount));
   return (
     <div>
       <header
@@ -326,7 +326,7 @@ export default function PriceView({
 
           {/* Affiliate Fee Display */}
           <div className="text-slate-400">
-            {price?.fees?.integratorFee?.amount
+            {price && price.fees && price.fees.integratorFee && price.fees.integratorFee.amount
               ? "Affiliate Fee: " +
               Number(
                 formatUnits(
@@ -341,22 +341,20 @@ export default function PriceView({
           </div>
 
           {/* Tax Information Display */}
-          // For tax information display
           <div className="text-slate-400">
-            {price?.tokenMetadata?.buyToken?.buyTaxBps !== "0" && (
+            {buyTokenTax.buyTaxBps !== "0" && (
               <p>
                 {MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol +
-                  ` Buy Tax: ${formatTax(price.tokenMetadata.buyToken.buyTaxBps)}%`}
+                  ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}
               </p>
             )}
-            {price?.tokenMetadata?.sellToken?.sellTaxBps !== "0" && (
+            {sellTokenTax.sellTaxBps !== "0" && (
               <p>
                 {MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol +
-                  ` Sell Tax: ${formatTax(price.tokenMetadata.sellToken.sellTaxBps)}%`}
+                  ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}
               </p>
             )}
           </div>
-
         </div>
 
         {taker && sellAmount !== "" ? (
