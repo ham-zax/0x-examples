@@ -146,18 +146,18 @@ export default function PriceView({
       const response = await fetch(`/api/price?${qs.stringify(params)}`);
       const data = await response.json();
       console.log("API response data:", data);
-
+// these used to be inside the buyamount if statement
+      setPrice(data);
+      setQuote(data);
+      if (data.buyAmount) {
+        setBuyAmount(toTokens(data.buyAmount, buyTokenDecimals));
+      } else {
+        console.warn("No buyAmount in API response");
+      }
       if (data?.validationErrors?.length > 0) {
         setError(data.validationErrors);
       } else {
         setError([]);
-      }
-      if (data.buyAmount) {
-        setBuyAmount(toTokens(data.buyAmount, buyTokenDecimals));
-        setPrice(data);
-        setQuote(data);
-      } else {
-        console.warn("No buyAmount in API response");
       }
     }
 
@@ -194,7 +194,7 @@ export default function PriceView({
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
-
+  console.log('price '+JSON.stringify(price));
   return (
     <div>
       <header
@@ -414,16 +414,14 @@ export default function PriceView({
             console.error("Error fetching allowance:", error);
           }
         } else {
-          console.warn(
-            "Cannot check allowance. Missing or invalid taker or allowanceTarget."
-          );
+          console.warn("Cannot check allowance. Missing or invalid taker or allowanceTarget.");
           console.log("taker:", taker);
           console.log("price:", price);
           console.log("price.allowanceTarget:", price?.allowanceTarget);
         }
       }
       checkAllowance();
-    }, [signer, provider, sellTokenAddress, taker, price]);
+    }, [signer, provider, taker, price]);
 
 
 

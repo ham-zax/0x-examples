@@ -1,14 +1,10 @@
 "use client";
 import PriceView from "./components/price";
 import QuoteView from "./components/quote";
-import ZeroExLogo from "../src/images/white-0x-logo.png";
-import Image from "next/image";
 import { useState } from "react";
 
 import type { PriceResponse } from "../src/utils/types";
-import { ConnectButton, useActiveAccount, useActiveWalletChain } from "thirdweb/react";
-import { client } from "./providers";
-import { base, ethereum, polygon } from "thirdweb/chains";
+import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 // Page.tsx
 function Page() {
   // const { address } = useAccount();
