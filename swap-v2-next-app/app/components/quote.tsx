@@ -100,7 +100,7 @@ export default function QuoteView({
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
-
+console.log("sellTokenInfo from quote", sellTokenInfo);
   return (
     <div className="p-3 mx-auto max-w-screen-sm ">
       <form>
@@ -108,7 +108,7 @@ export default function QuoteView({
           <div className="text-xl mb-2 text-white">You pay</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <Image
-              alt={sellTokenInfo(chainId).symbol}
+              alt={sellTokenInfo(chainId)?.symbol || "Token"}
               className="h-9 w-9 mr-2 rounded-md"
               src={sellTokenInfo(chainId || 1)?.logoURI}
               width={9}

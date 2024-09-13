@@ -471,7 +471,7 @@ export default function PriceView({
       const transaction = approve({
         contract,
         spender,
-        amount: balanceData ? balanceData.value.toString() : "0",
+        amount: balanceData?.value ? toTokens(balanceData.value, sellTokenDecimals) : "0",
       });
 
       try {

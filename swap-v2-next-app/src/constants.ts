@@ -105,7 +105,7 @@ export const MAINNET_TOKENS_BY_SYMBOL: Record<string, Token> = {
   },
 };
 
-export const MAINNET_TOKENS_BY_ADDRESS: Record<`0x${string}`, Token> = {
+export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
     chainId: 1,
     name: "Wrapped Ether",
@@ -134,7 +134,7 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<`0x${string}`, Token> = {
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
 };
-export const POLYGON_TOKENS_BY_ADDRESS: Record<`0x${string}`, Token> = {
+export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
   [NATIVE_TOKEN_ADDRESS]: {
     chainId: 137,
     name: "MATIC",
