@@ -1,12 +1,7 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useEffect, useState, ChangeEvent } from "react";
-import { formatUnits, parseUnits } from "ethers";
+import { ethers, formatUnits, parseUnits, isAddress } from "ethers";
 import {
-  useReadContract,
   useBalance,
-  useSimulateContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
 } from "wagmi";
 import { erc20Abi, Address } from "viem";
 import {
@@ -16,10 +11,14 @@ import {
   AFFILIATE_FEE,
   FEE_RECIPIENT,
 } from "../../src/constants";
-import { permit2Abi } from "../../src/utils/permit2abi";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
+import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain } from "thirdweb/react";
+import { client } from "../providers";
+import { toTokens } from "thirdweb";
+import { ethers6Adapter } from "thirdweb/adapters/ethers6";
+import { ethereum } from "thirdweb/chains";
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
@@ -33,11 +32,13 @@ export default function PriceView({
   setPrice,
   setFinalize,
   chainId,
+  setQuote
 }: {
   price: any;
   taker: Address | undefined;
   setPrice: (price: any) => void;
   setFinalize: (finalize: boolean) => void;
+  setQuote: (quote: any) => void;
   chainId: number;
 }) {
   const [sellToken, setSellToken] = useState("weth");
@@ -54,13 +55,48 @@ export default function PriceView({
     buyTaxBps: "0",
     sellTaxBps: "0",
   });
+  const activeWallet = useActiveWallet();
+  const activeChain = useActiveWalletChain();
+  const activeAccount = useActiveAccount();
+
+  // Ensure activeWallet and activeChain are defined
+  const isWalletConnected = activeAccount !== undefined;
+  const isChainDefined = activeChain !== undefined;
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [provider, setProvider] = useState<ethers.Provider | null>(null);
+
+
+  useEffect(() => {
+    async function getSignerAndProvider() {
+      if (isWalletConnected && isChainDefined) {
+        // Convert thirdweb wallet to ethers.js signer
+        const ethersSigner = await ethers6Adapter.signer.toEthers({
+          client,
+          chain: activeChain,
+          account: activeAccount,
+        });
+        setSigner(ethersSigner);
+
+        // Get ethers.js provider from thirdweb
+        const ethersProvider = ethers6Adapter.provider.toEthers({
+          client,
+          chain: activeChain,
+        });
+        setProvider(ethersProvider);
+      }
+    }
+    getSignerAndProvider();
+  }, [activeWallet, activeChain, client, isWalletConnected, isChainDefined]);
+
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSellToken(e.target.value);
   };
-  function handleBuyTokenChange(e: ChangeEvent<HTMLSelectElement>) {
+
+  const handleBuyTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setBuyToken(e.target.value);
-  }
+  };
+
 
   const tokensByChain = (chainId: number) => {
     if (chainId === 1) {
@@ -86,49 +122,51 @@ export default function PriceView({
     buyAmount && tradeDirection === "buy"
       ? parseUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
+  console.log("taker:", taker);
+  console.log("price:", price);
+  console.log("price?.allowanceTarget:", price?.allowanceTarget);
 
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
     const params = {
       chainId: chainId,
-      sellToken: sellTokenObject.address,
-      buyToken: buyTokenObject.address,
+      sellToken: sellTokenObject?.address,
+      buyToken: buyTokenObject?.address,
       sellAmount: parsedSellAmount,
       buyAmount: parsedBuyAmount,
-      taker,
+      taker: activeAccount?.address,
       swapFeeRecipient: FEE_RECIPIENT,
       swapFeeBps: AFFILIATE_FEE,
-      swapFeeToken: buyTokenObject.address,
+      swapFeeToken: buyTokenObject?.address,
       tradeSurplusRecipient: FEE_RECIPIENT,
     };
+    console.log("API request parameters:", params);
 
     async function main() {
       const response = await fetch(`/api/price?${qs.stringify(params)}`);
       const data = await response.json();
+      console.log("API response data:", data);
 
       if (data?.validationErrors?.length > 0) {
-        // error for sellAmount too low
         setError(data.validationErrors);
       } else {
         setError([]);
       }
       if (data.buyAmount) {
-        setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals));
+        setBuyAmount(toTokens(data.buyAmount, buyTokenDecimals));
         setPrice(data);
-      }
-      // Set token tax information
-      if (data?.tokenMetadata) {
-        setBuyTokenTax(data.tokenMetadata.buyToken);
-        setSellTokenTax(data.tokenMetadata.sellToken);
+        setQuote(data);
+      } else {
+        console.warn("No buyAmount in API response");
       }
     }
 
-    if (sellAmount !== "") {
+    if (sellAmount !== "" && isWalletConnected) {
       main();
     }
   }, [
-    sellTokenObject.address,
-    buyTokenObject.address,
+    sellTokenObject?.address,
+    buyTokenObject?.address,
     parsedSellAmount,
     parsedBuyAmount,
     chainId,
@@ -136,7 +174,10 @@ export default function PriceView({
     setPrice,
     FEE_RECIPIENT,
     AFFILIATE_FEE,
+    activeAccount,
+    isWalletConnected,
   ]);
+
 
   // Hook for fetching balance information for specified token for a specific taker address
   const { data, isError, isLoading } = useBalance({
@@ -165,7 +206,8 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton />
+        <ConnectButton client={client} chain={ethereum}  />
+
       </header>
 
       <div className="container mx-auto p-10">
@@ -285,14 +327,14 @@ export default function PriceView({
           <div className="text-slate-400">
             {price && price.fees.integratorFee.amount
               ? "Affiliate Fee: " +
-                Number(
-                  formatUnits(
-                    BigInt(price.fees.integratorFee.amount),
-                    MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
-                  )
-                ) +
-                " " +
-                MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
+              Number(
+                formatUnits(
+                  BigInt(price.fees.integratorFee.amount),
+                  MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
+                )
+              ) +
+              " " +
+              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
               : null}
           </div>
 
@@ -313,106 +355,18 @@ export default function PriceView({
           </div>
         </div>
 
-        {taker ? (
+        {price && price.allowanceTarget && activeAccount ? (
           <ApproveOrReviewButton
-            sellTokenAddress={MAINNET_TOKENS_BY_SYMBOL[sellToken].address}
-            taker={taker}
+            taker={activeAccount.address}
             onClick={() => {
               setFinalize(true);
             }}
+            sellTokenAddress={sellTokenAddress}
             disabled={inSufficientBalance}
             price={price}
           />
         ) : (
-          <ConnectButton.Custom>
-            {({
-              account,
-              chain,
-              openAccountModal,
-              openChainModal,
-              openConnectModal,
-              mounted,
-            }) => {
-              const ready = mounted;
-              const connected = ready && account && chain;
-
-              return (
-                <div
-                  {...(!ready && {
-                    "aria-hidden": true,
-                    style: {
-                      opacity: 0,
-                      pointerEvents: "none",
-                      userSelect: "none",
-                    },
-                  })}
-                >
-                  {(() => {
-                    if (!connected) {
-                      return (
-                        <button
-                          className="w-full bg-blue-600 text-white font-semibold p-2 rounded hover:bg-blue-700"
-                          onClick={openConnectModal}
-                          type="button"
-                        >
-                          Connect Wallet
-                        </button>
-                      );
-                    }
-
-                    if (chain.unsupported) {
-                      return (
-                        <button onClick={openChainModal} type="button">
-                          Wrong network
-                        </button>
-                      );
-                    }
-
-                    return (
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <button
-                          onClick={openChainModal}
-                          style={{ display: "flex", alignItems: "center" }}
-                          type="button"
-                        >
-                          {chain.hasIcon && (
-                            <div
-                              style={{
-                                background: chain.iconBackground,
-                                width: 12,
-                                height: 12,
-                                borderRadius: 999,
-                                overflow: "hidden",
-                                marginRight: 4,
-                              }}
-                            >
-                              {chain.iconUrl && (
-                                <Image
-                                  src={chain.iconUrl}
-                                  alt={chain.name ?? "Chain icon"}
-                                  width={12}
-                                  height={12}
-                                  layout="fixed"
-                                />
-                              )}
-                            </div>
-                          )}
-                          {chain.name}
-                        </button>
-
-                        <button onClick={openAccountModal} type="button">
-                          {account.displayName}
-                          {account.displayBalance
-                            ? ` (${account.displayBalance})`
-                            : ""}
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            }}
-          </ConnectButton.Custom>
+          <div>Loading price data...</div>
         )}
       </div>
     </div>
@@ -431,88 +385,82 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
   }) {
-    // If price.issues.allowance is null, show the Review Trade button
-    if (price?.issues.allowance === null) {
+    const [allowance, setAllowance] = useState(null);
+    const [isApproving, setIsApproving] = useState(false);
+
+    useEffect(() => {
+      async function checkAllowance() {
+        if (
+          signer &&
+          provider &&
+          taker &&
+          isAddress(taker) &&
+          price &&
+          price.allowanceTarget &&
+          isAddress(price.allowanceTarget)
+        ) {
+          const contract = new ethers.Contract(
+            sellTokenAddress,
+            erc20Abi,
+            provider
+          );
+          try {
+            const allowance = await contract.allowance(
+              taker,
+              price.allowanceTarget
+            );
+            setAllowance(allowance);
+          } catch (error) {
+            console.error("Error fetching allowance:", error);
+          }
+        } else {
+          console.warn(
+            "Cannot check allowance. Missing or invalid taker or allowanceTarget."
+          );
+          console.log("taker:", taker);
+          console.log("price:", price);
+          console.log("price.allowanceTarget:", price?.allowanceTarget);
+        }
+      }
+      checkAllowance();
+    }, [signer, provider, sellTokenAddress, taker, price]);
+
+
+
+    const handleApprove = async () => {
+      setIsApproving(true);
+      const contract = new ethers.Contract(
+        sellTokenAddress,
+        erc20Abi,
+        signer
+      );
+      const tx = await contract.approve(
+        price?.allowanceTarget,
+        MAX_ALLOWANCE
+      );
+      await tx.wait();
+      setIsApproving(false);
+      // Update allowance after approval
+      const newAllowance = await contract.allowance(
+        taker,
+        price?.allowanceTarget
+      );
+      setAllowance(newAllowance);
+    };
+
+    if (allowance === null) {
+      return <div>Loading allowance...</div>;
+    }
+
+    if (allowance.eq(0)) {
       return (
         <button
           type="button"
-          disabled={disabled}
-          onClick={() => {
-            // fetch data, when finished, show quote view
-            onClick();
-          }}
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+          onClick={handleApprove}
+          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
         >
-          {disabled ? "Insufficient Balance" : "Review Trade"}
+          {isApproving ? "Approving..." : "Approve"}
         </button>
-      );
-    }
-
-    // Determine the spender from price.issues.allowance
-    const spender = price?.issues.allowance.spender;
-
-    // 1. Read from erc20, check approval for the determined spender to spend sellToken
-    const { data: allowance, refetch } = useReadContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [taker, spender],
-    });
-    console.log("checked spender approval");
-
-    // 2. (only if no allowance): write to erc20, approve token allowance for the determined spender
-    const { data } = useSimulateContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [spender, MAX_ALLOWANCE],
-    });
-
-    // Define useWriteContract for the 'approve' operation
-    const {
-      data: writeContractResult,
-      writeContractAsync: writeContract,
-      error,
-    } = useWriteContract();
-
-    // useWaitForTransactionReceipt to wait for the approval transaction to complete
-    const { data: approvalReceiptData, isLoading: isApproving } =
-      useWaitForTransactionReceipt({
-        hash: writeContractResult,
-      });
-
-    // Call `refetch` when the transaction succeeds
-    useEffect(() => {
-      if (data) {
-        refetch();
-      }
-    }, [data, refetch]);
-
-    if (error) {
-      return <div>Something went wrong: {error.message}</div>;
-    }
-
-    if (allowance === 0n) {
-      return (
-        <>
-          <button
-            type="button"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-            onClick={async () => {
-              await writeContract({
-                abi: erc20Abi,
-                address: sellTokenAddress,
-                functionName: "approve",
-                args: [spender, MAX_ALLOWANCE],
-              });
-              console.log("approving spender to spend sell token");
-
-              refetch();
-            }}
-          >
-            {isApproving ? "Approving…" : "Approve"}
-          </button>
-        </>
       );
     }
 
@@ -520,14 +468,12 @@ export default function PriceView({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => {
-          // fetch data, when finished, show quote view
-          onClick();
-        }}
+        onClick={onClick}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
     );
   }
+
 }

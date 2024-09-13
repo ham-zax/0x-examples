@@ -1,4 +1,5 @@
-import { Address } from "viem";
+import { Address } from "thirdweb/utils";
+
 
 export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 
@@ -50,14 +51,26 @@ export const MAINNET_TOKENS: Token[] = [
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
+];
+export const POLYGON_TOKENS: Token[] = [
   {
-    chainId: 1,
-    name: "FLOKI",
-    symbol: "FLOKI",
-    decimals: 9,
-    address: "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e",
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     logoURI:
-      "https://raw.githubusercontent.com/trustwallet/assets/c37119334a24f9933f373c6cc028a5bdbad2ecb4/blockchains/ethereum/assets/0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E/logo.png",
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+    
+  },
+  {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
   },
 ];
 
@@ -89,15 +102,6 @@ export const MAINNET_TOKENS_BY_SYMBOL: Record<string, Token> = {
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
-  floki: {
-    chainId: 1,
-    name: "FLOKI",
-    symbol: "FLOKI",
-    decimals: 9,
-    address: "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e",
-    logoURI:
-      "https://raw.githubusercontent.com/trustwallet/assets/c37119334a24f9933f373c6cc028a5bdbad2ecb4/blockchains/ethereum/assets/0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E/logo.png",
-  },
 };
 
 export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
@@ -128,13 +132,47 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/dai.svg",
   },
-  "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e": {
-    chainId: 1,
-    name: "FLOKI",
-    symbol: "FLOKI",
-    decimals: 9,
-    address: "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e",
+};
+export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     logoURI:
-      "https://raw.githubusercontent.com/trustwallet/assets/c37119334a24f9933f373c6cc028a5bdbad2ecb4/blockchains/ethereum/assets/0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E/logo.png",
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+  },
+  "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
   },
 };
+
+export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
+{
+  matic: {
+    chainId: 137,
+    name: "MATIC",
+    symbol: "MATIC",
+    decimals: 18,
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
+    
+  },
+  usdc: {
+    chainId: 137,
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+}

@@ -1,31 +1,39 @@
 "use client";
-
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import PriceView from "./components/price";
 import QuoteView from "./components/quote";
-
+import ZeroExLogo from "../src/images/white-0x-logo.png";
+import Image from "next/image";
 import { useState } from "react";
-import { useAccount, useChainId } from "wagmi";
 
 import type { PriceResponse } from "../src/utils/types";
-
+import { ConnectButton, useActiveAccount, useActiveWalletChain } from "thirdweb/react";
+import { client } from "./providers";
+import { base, ethereum, polygon } from "thirdweb/chains";
+// Page.tsx
 function Page() {
-  const { address } = useAccount();
+  // const { address } = useAccount();
 
-  const chainId = useChainId() || 1;
-  console.log("chainId: ", chainId);
+  // const chainId = useChainId() || 1;
+  const activeAccount = useActiveAccount();
+  const activeChain = useActiveWalletChain();
+  const chainId = activeChain?.id || 1;
+  console.log("chainId: ", activeChain);
+  console.log("address: ", activeAccount?.address);
 
   const [finalize, setFinalize] = useState(false);
   const [price, setPrice] = useState<PriceResponse | undefined>();
   const [quote, setQuote] = useState();
-
+  
   return (
     <div
-      className={`flex min-h-screen flex-col items-center justify-between p-24`}
+      className={`flex min-h-screen flex-col items-center  p-24`}
     >
+      
+    
+      
       {finalize && price ? (
         <QuoteView
-          taker={address}
+          taker={activeAccount?.address}
           price={price}
           quote={quote}
           setQuote={setQuote}
@@ -33,11 +41,12 @@ function Page() {
         />
       ) : (
         <PriceView
-          taker={address}
+          taker={activeAccount?.address}
           price={price}
           setPrice={setPrice}
-          setFinalize={setFinalize}
+          setFinalize={() => setFinalize(true)}
           chainId={chainId}
+          setQuote={setQuote} // Pass the setQuote function
         />
       )}
     </div>
