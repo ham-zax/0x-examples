@@ -145,7 +145,7 @@ export default function PriceView({
       const response = await fetch(`/api/price?${qs.stringify(params)}`);
       const data = await response.json();
       console.log("API response data:", data);
-// these used to be inside the buyamount if statement
+      // these used to be inside the buyamount if statement
       setPrice(data);
       setQuote(data);
       if (data.buyAmount) {
@@ -193,7 +193,9 @@ export default function PriceView({
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
-  console.log('price '+JSON.stringify(price));
+  console.log('price ' + JSON.stringify(price));
+  console.log('taker ' + JSON.stringify(taker));
+  console.log('activeAccount.address ' + JSON.stringify(activeAccount?.address));
   return (
     <div>
       <header
@@ -205,7 +207,7 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton client={client} chain={ethereum}  />
+        <ConnectButton client={client} chain={ethereum} />
 
       </header>
 
@@ -324,7 +326,7 @@ export default function PriceView({
 
           {/* Affiliate Fee Display */}
           <div className="text-slate-400">
-            {price && price.fees.integratorFee.amount
+            {price?.fees?.integratorFee?.amount
               ? "Affiliate Fee: " +
               Number(
                 formatUnits(
@@ -335,28 +337,31 @@ export default function PriceView({
               " " +
               MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
               : null}
+
           </div>
 
           {/* Tax Information Display */}
+          // For tax information display
           <div className="text-slate-400">
-            {buyTokenTax.buyTaxBps !== "0" && (
+            {price?.tokenMetadata?.buyToken?.buyTaxBps !== "0" && (
               <p>
                 {MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol +
-                  ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}
+                  ` Buy Tax: ${formatTax(price.tokenMetadata.buyToken.buyTaxBps)}%`}
               </p>
             )}
-            {sellTokenTax.sellTaxBps !== "0" && (
+            {price?.tokenMetadata?.sellToken?.sellTaxBps !== "0" && (
               <p>
                 {MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol +
-                  ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}
+                  ` Sell Tax: ${formatTax(price.tokenMetadata.sellToken.sellTaxBps)}%`}
               </p>
             )}
           </div>
+
         </div>
 
-        {price && activeAccount ? (
+        {taker && sellAmount !== "" ? (
           <ApproveOrReviewButton
-            taker={activeAccount.address}
+            taker={taker}
             onClick={() => {
               setFinalize(true);
             }}
@@ -386,13 +391,9 @@ export default function PriceView({
   }) {
     const [allowance, setAllowance] = useState<bigint | null>(null);
     const [isApproving, setIsApproving] = useState(false);
-  
-    if (!price) {
-      return <div>Loading price data...</div>;
-    }
-  
-    if (!price.issues || !price.issues.allowance) {
-      // No allowance issues, show Review Trade button
+
+    if (!price || !price.issues || !price.issues.allowance) {
+      // No price data or no allowance issues; show "Review Trade" button
       return (
         <button
           type="button"
@@ -404,9 +405,10 @@ export default function PriceView({
         </button>
       );
     }
-  
+
+    // Proceed to handle allowance if price.issues.allowance exists
     const spender = price.issues.allowance.spender;
-  
+
     useEffect(() => {
       async function checkAllowance() {
         if (
@@ -436,7 +438,7 @@ export default function PriceView({
       }
       checkAllowance();
     }, [signer, provider, taker, spender, sellTokenAddress]);
-  
+
     const handleApprove = async () => {
       setIsApproving(true);
       const contract = new ethers.Contract(sellTokenAddress, erc20Abi, signer);
@@ -452,11 +454,11 @@ export default function PriceView({
         setIsApproving(false);
       }
     };
-  
+
     if (allowance === null) {
       return <div>Checking allowance...</div>;
     }
-  
+
     if (allowance === BigInt(0)) {
       return (
         <button
@@ -468,7 +470,7 @@ export default function PriceView({
         </button>
       );
     }
-  
+
     return (
       <button
         type="button"
@@ -480,4 +482,5 @@ export default function PriceView({
       </button>
     );
   }
+
 }
