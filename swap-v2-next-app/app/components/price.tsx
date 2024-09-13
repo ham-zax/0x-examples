@@ -2,8 +2,15 @@ import { useEffect, useState, ChangeEvent } from "react";
 import { ethers, formatUnits, parseUnits, isAddress } from "ethers";
 import {
   useBalance,
+  useDisconnect,
+  useSwitchChain,
+  useWalletClient,
+  useWriteContract,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useSimulateContract
 } from "wagmi";
-import { erc20Abi, Address } from "viem";
+import { erc20Abi, Address, defineChain } from "viem";
 import {
   MAINNET_TOKENS,
   MAINNET_TOKENS_BY_SYMBOL,
@@ -14,12 +21,14 @@ import {
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
-import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain } from "thirdweb/react";
-import { client } from "../providers";
-import { toTokens } from "thirdweb";
+import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain, useSetActiveWallet } from "thirdweb/react";
+import { client, config } from "../providers";
+import { Chain, toTokens } from "thirdweb";
 import { ethers6Adapter } from "thirdweb/adapters/ethers6";
 
-import { ethereum } from "thirdweb/chains";
+import { ethereum, polygon } from "thirdweb/chains";
+import { viemAdapter } from "thirdweb/adapters/viem";
+import { createWalletAdapter } from "thirdweb/wallets";
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
@@ -65,6 +74,65 @@ export default function PriceView({
   const isChainDefined = activeChain !== undefined;
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [provider, setProvider] = useState<ethers.Provider | null>(null);
+  const { data: walletClient } = useWalletClient();
+  const { disconnectAsync } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
+  const setActiveWallet = useSetActiveWallet();
+  const thirdwebWallet = useActiveWallet();
+
+  useEffect(() => {
+    const setActive = async () => {
+      if (!walletClient) {
+        console.error("Wallet client is not defined");
+        return;
+      }
+
+      const wchainId = await walletClient.getChainId();
+
+      const chainMap: { [key: number]: Chain } = {
+        1: ethereum,
+        137: polygon,
+        // Add other chain mappings
+      };
+
+      const chain = chainMap[wchainId];
+
+      if (!chain) {
+        console.error(`Unsupported chain ID: ${wchainId}`);
+        return;
+      }
+
+      const adaptedAccount = viemAdapter.walletClient.fromViem({
+        walletClient: walletClient,
+      });
+
+      const thirdwebWallet = createWalletAdapter({
+        client,
+        adaptedAccount,
+        chain,
+        onDisconnect: async () => {
+          await disconnectAsync();
+        },
+        switchChain: async (newChain:Chain) => {
+          await switchChainAsync({ chainId: newChain.id as 1 | 11155111 | 137 | 8453 | 84532 });
+        },
+      });
+
+      setActiveWallet(thirdwebWallet);
+    };
+
+    setActive();
+  }, [walletClient, disconnectAsync, switchChainAsync, setActiveWallet]);
+
+  useEffect(() => {
+    const disconnectIfNeeded = async () => {
+      if (thirdwebWallet && !walletClient) {
+        await thirdwebWallet.disconnect();
+      }
+    };
+
+    disconnectIfNeeded();
+  }, [walletClient, thirdwebWallet]);
 
 
   useEffect(() => {
@@ -358,7 +426,7 @@ export default function PriceView({
           </div>
         </div>
 
-        {taker ? (
+        {taker && parsedSellAmount ? (
           <ApproveOrReviewButton
             taker={taker}
             onClick={() => {
@@ -367,9 +435,10 @@ export default function PriceView({
             sellTokenAddress={sellTokenAddress}
             disabled={inSufficientBalance}
             price={price}
+            parsedSellAmount={parsedSellAmount}
           />
         ) : (
-          <div>Loading price data...</div>
+          <ConnectButton client={client} />
         )}
       </div>
     </div>
@@ -381,18 +450,55 @@ export default function PriceView({
     sellTokenAddress,
     disabled,
     price,
+    parsedSellAmount,
   }: {
     taker: Address;
     onClick: () => void;
     sellTokenAddress: Address;
     disabled?: boolean;
     price: any;
+    parsedSellAmount: string;
   }) {
-    const [allowance, setAllowance] = useState<bigint | null>(null);
-    const [isApproving, setIsApproving] = useState(false);
-    const hasAllowanceIssue = price?.issues?.allowance !== null && price?.issues?.allowance !== undefined;
+    const spender = price?.issues?.allowance?.spender;
 
-    if (!hasAllowanceIssue) {
+    // Check allowance
+    const { data: allowance, refetch } = useReadContract({
+      address: sellTokenAddress,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [taker, spender],
+    });
+
+    // Determine if approval is needed
+    const needsApproval =
+      allowance && BigInt(allowance.toString()) < BigInt(parsedSellAmount);
+
+
+    // Write contract
+    const {
+      data: writeData,
+      writeContract,
+      error: writeError,
+      status,
+      isSuccess,
+    } = useWriteContract();
+
+    // Use useEffect to react to success
+    useEffect(() => {
+      if (isSuccess) {
+        refetch(); // Refetch allowance after approval
+      }
+    }, [isSuccess, refetch]);
+
+    // Determine loading state
+    const isWriting = status === 'pending';
+
+    // Wait for transaction receipt
+    const { data: txReceipt, isLoading: isWaiting } = useWaitForTransactionReceipt({
+      hash: writeData,
+    });
+
+    if (!price || !spender) {
       // No price data or no allowance issues; show "Review Trade" button
       return (
         <button
@@ -401,72 +507,27 @@ export default function PriceView({
           onClick={onClick}
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
         >
-          {disabled ? "Insufficient Balance" : "Review Trade"}
+          {disabled ? 'Insufficient Balance' : 'Review Trade'}
         </button>
       );
     }
 
-    // Proceed to handle allowance if price.issues.allowance exists
-    const spender = price.issues.allowance.spender;
-
-    useEffect(() => {
-      async function checkAllowance() {
-        if (
-          signer &&
-          provider &&
-          taker &&
-          isAddress(taker) &&
-          spender &&
-          isAddress(spender)
-        ) {
-          const contract = new ethers.Contract(
-            sellTokenAddress,
-            erc20Abi,
-            provider
-          );
-          try {
-            const currentAllowance = await contract.allowance(taker, spender);
-            setAllowance(currentAllowance);
-          } catch (error) {
-            console.error("Error fetching allowance:", error);
-          }
-        } else {
-          console.warn("Cannot check allowance. Missing or invalid data.");
-          console.log("taker:", taker);
-          console.log("spender:", spender);
-        }
-      }
-      checkAllowance();
-    }, [signer, provider, taker, spender, sellTokenAddress]);
-
-    const handleApprove = async () => {
-      setIsApproving(true);
-      const contract = new ethers.Contract(sellTokenAddress, erc20Abi, signer);
-      try {
-        const tx = await contract.approve(spender, MAX_ALLOWANCE);
-        await tx.wait();
-        // Update allowance after approval
-        const newAllowance = await contract.allowance(taker, spender);
-        setAllowance(newAllowance);
-        setIsApproving(false);
-      } catch (error) {
-        console.error("Error during approval:", error);
-        setIsApproving(false);
-      }
-    };
-
-    if (allowance === null) {
-      return <div>Checking allowance...</div>;
-    }
-
-    if (allowance === BigInt(0)) {
+    if (needsApproval) {
       return (
         <button
           type="button"
-          onClick={handleApprove}
+          disabled={isWriting || isWaiting}
+          onClick={() =>
+            writeContract({
+              address: sellTokenAddress,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [spender, MAX_ALLOWANCE],
+            })
+          }
           className="bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
         >
-          {isApproving ? "Approving..." : "Approve"}
+          {isWriting || isWaiting ? 'Approving...' : 'Approve'}
         </button>
       );
     }
@@ -478,9 +539,13 @@ export default function PriceView({
         onClick={onClick}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
-        {disabled ? "Insufficient Balance" : "Review Trade"}
+        {disabled ? 'Insufficient Balance' : 'Review Trade'}
       </button>
     );
   }
+
+
+
+
 
 }
