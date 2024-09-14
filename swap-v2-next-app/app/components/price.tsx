@@ -1,5 +1,5 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { ethers, formatUnits, parseUnits, isAddress } from "ethers";
+import { ethers, formatUnits, parseUnits } from "ethers";
 import {
   useBalance,
   useDisconnect,
@@ -7,13 +7,13 @@ import {
   useWalletClient,
   useWriteContract,
   useReadContract,
-  useWaitForTransactionReceipt,
-  useSimulateContract
 } from "wagmi";
-import { erc20Abi, Address, defineChain } from "viem";
+import { erc20Abi, Address } from "viem";
 import {
   MAINNET_TOKENS,
   MAINNET_TOKENS_BY_SYMBOL,
+  POLYGON_TOKENS,
+  POLYGON_TOKEN_BY_SYMBOL,
   MAX_ALLOWANCE,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
@@ -21,19 +21,36 @@ import {
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
-import { ConnectButton, useActiveAccount, useActiveWallet, useActiveWalletChain, useSetActiveWallet } from "thirdweb/react";
-import { client, config } from "../providers";
+import {
+  ConnectButton,
+  useActiveAccount,
+  useActiveWallet,
+  useActiveWalletChain,
+  useSetActiveWallet,
+} from "thirdweb/react";
+import { client } from "../providers";
 import { Chain, toTokens } from "thirdweb";
 import { ethers6Adapter } from "thirdweb/adapters/ethers6";
-
 import { ethereum, polygon } from "thirdweb/chains";
 import { viemAdapter } from "thirdweb/adapters/viem";
 import { createWalletAdapter } from "thirdweb/wallets";
+import { useWaitForTransactionReceipt } from "wagmi";
+export const NATIVE_TOKEN_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+
+export function isNativeTokenAddress(address: string | undefined): boolean {
+  return (
+    address?.toLowerCase() === NATIVE_TOKEN_ADDRESS ||
+    address?.toLowerCase() === '0x0000000000000000000000000000000000000000'
+  );
+}
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
     return "weth";
+  } else if (chainId === 137) {
+    return "matic";
   }
+  return "usdc";
 };
 
 export default function PriceView({
@@ -41,21 +58,19 @@ export default function PriceView({
   taker,
   setPrice,
   setFinalize,
-  chainId,
-  setQuote
+  setQuote,
 }: {
   price: any;
   taker: Address | undefined;
   setPrice: (price: any) => void;
   setFinalize: (finalize: boolean) => void;
   setQuote: (quote: any) => void;
-  chainId: number;
 }) {
-  const [sellToken, setSellToken] = useState("weth");
-  const [buyToken, setBuyToken] = useState("usdc");
-  const [sellAmount, setSellAmount] = useState("");
-  const [buyAmount, setBuyAmount] = useState("");
-  const [tradeDirection, setTradeDirection] = useState("sell");
+  const [sellToken, setSellToken] = useState<string>("weth");
+  const [buyToken, setBuyToken] = useState<string>("usdc");
+  const [sellAmount, setSellAmount] = useState<string>("");
+  const [buyAmount, setBuyAmount] = useState<string>("");
+  const [tradeDirection, setTradeDirection] = useState<string>("sell");
   const [error, setError] = useState([]);
   const [buyTokenTax, setBuyTokenTax] = useState({
     buyTaxBps: "0",
@@ -65,20 +80,19 @@ export default function PriceView({
     buyTaxBps: "0",
     sellTaxBps: "0",
   });
+
   const activeWallet = useActiveWallet();
   const activeChain = useActiveWalletChain();
   const activeAccount = useActiveAccount();
+  const chainId = activeChain?.id ?? 1;
 
-  // Ensure activeWallet and activeChain are defined
   const isWalletConnected = activeAccount !== undefined;
   const isChainDefined = activeChain !== undefined;
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [provider, setProvider] = useState<ethers.Provider | null>(null);
+
   const { data: walletClient } = useWalletClient();
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const setActiveWallet = useSetActiveWallet();
-  const thirdwebWallet = useActiveWallet();
 
   useEffect(() => {
     const setActive = async () => {
@@ -113,8 +127,10 @@ export default function PriceView({
         onDisconnect: async () => {
           await disconnectAsync();
         },
-        switchChain: async (newChain:Chain) => {
-          await switchChainAsync({ chainId: newChain.id as 1 | 11155111 | 137 | 8453 | 84532 });
+        switchChain: async (newChain: Chain) => {
+          await switchChainAsync({
+            chainId: newChain.id as 1 | 137,
+          });
         },
       });
 
@@ -126,14 +142,29 @@ export default function PriceView({
 
   useEffect(() => {
     const disconnectIfNeeded = async () => {
-      if (thirdwebWallet && !walletClient) {
-        await thirdwebWallet.disconnect();
+      if (activeWallet && !walletClient) {
+        await activeWallet.disconnect();
       }
     };
 
     disconnectIfNeeded();
-  }, [walletClient, thirdwebWallet]);
+  }, [walletClient, activeWallet]);
 
+  const tokensByChain = (chainId: number) => {
+    if (chainId === 1) {
+      return MAINNET_TOKENS_BY_SYMBOL;
+    } else if (chainId === 137) {
+      return POLYGON_TOKEN_BY_SYMBOL;
+    }
+    console.warn(`Unsupported chain ID: ${chainId}. Defaulting to Mainnet tokens.`);
+    return MAINNET_TOKENS_BY_SYMBOL;
+  };
+
+  const tokenOptions = chainId === 137 ? POLYGON_TOKENS : MAINNET_TOKENS;
+  const tokensBySymbol = tokensByChain(chainId);
+
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [provider, setProvider] = useState<ethers.Provider | null>(null);
 
   useEffect(() => {
     async function getSignerAndProvider() {
@@ -155,6 +186,12 @@ export default function PriceView({
     getSignerAndProvider();
   }, [activeAccount, activeChain, client, isWalletConnected, isChainDefined]);
 
+  const sellTokenObject = tokensBySymbol[sellToken];
+  const buyTokenObject = tokensBySymbol[buyToken];
+
+  const sellTokenDecimals = sellTokenObject?.decimals;
+  const buyTokenDecimals = buyTokenObject?.decimals;
+  const sellTokenAddress = sellTokenObject?.address;
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSellToken(e.target.value);
@@ -164,36 +201,39 @@ export default function PriceView({
     setBuyToken(e.target.value);
   };
 
-
-  const tokensByChain = (chainId: number) => {
-    if (chainId === 1) {
-      return MAINNET_TOKENS_BY_SYMBOL;
-    }
-    return MAINNET_TOKENS_BY_SYMBOL;
+  const swapTokens = () => {
+    const tempSellToken = sellToken;
+    setSellToken(buyToken);
+    setBuyToken(tempSellToken);
   };
 
-  const sellTokenObject = tokensByChain(chainId)[sellToken];
-  console.log("sellTokenObject", sellTokenObject);
-  const buyTokenObject = tokensByChain(chainId)[buyToken];
+  useEffect(() => {
+    if (!sellTokenObject) {
+      console.error(`Sell token ${sellToken} not found for chain ${chainId}`);
+      setSellToken(Object.keys(tokensBySymbol)[0]);
+    }
+    if (!buyTokenObject) {
+      console.error(`Buy token ${buyToken} not found for chain ${chainId}`);
+      setBuyToken(Object.keys(tokensBySymbol)[1]);
+    }
+  }, [chainId, sellToken, buyToken]);
 
-  const sellTokenDecimals = sellTokenObject.decimals;
-  const buyTokenDecimals = buyTokenObject.decimals;
-  const sellTokenAddress = sellTokenObject.address;
+  useEffect(() => {
+    setSellToken(DEFAULT_BUY_TOKEN(chainId));
+    setBuyToken("usdc");
+  }, [chainId]);
 
   const parsedSellAmount =
-    sellAmount && tradeDirection === "sell"
-      ? parseUnits(sellAmount, sellTokenDecimals).toString()
-      : undefined;
+  sellAmount && tradeDirection === 'sell'
+    ? parseUnits(sellAmount, sellTokenDecimals).toString()
+    : undefined;
+
 
   const parsedBuyAmount =
     buyAmount && tradeDirection === "buy"
       ? parseUnits(buyAmount, buyTokenDecimals).toString()
       : undefined;
-  console.log("taker:", taker);
-  console.log("price:", price);
-  console.log("price?.issues.allowance:", price?.issues?.allowance);
 
-  // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
     const params = {
       chainId: chainId,
@@ -213,7 +253,6 @@ export default function PriceView({
       const response = await fetch(`/api/price?${qs.stringify(params)}`);
       const data = await response.json();
       console.log("API response data:", data);
-      // these used to be inside the buyamount if statement
       setPrice(data);
       setQuote(data);
       if (data.buyAmount) {
@@ -228,7 +267,7 @@ export default function PriceView({
       }
     }
 
-    if (sellAmount !== "" && isWalletConnected) {
+    if (sellAmount !== "" && isWalletConnected && sellTokenObject && buyTokenObject) {
       main();
     }
   }, [
@@ -245,25 +284,22 @@ export default function PriceView({
     isWalletConnected,
   ]);
 
-
-  // Hook for fetching balance information for specified token for a specific taker address
-  const { data, isError, isLoading } = useBalance({
+  const { data: balanceData } = useBalance({
     address: taker,
-    token: sellTokenObject.address,
+    chainId: chainId,
+    ...(!isNativeTokenAddress(sellTokenObject?.address)
+      ? { token: sellTokenObject?.address }
+      : {}),
   });
-
-  console.log("taker sellToken balance: ", data);
+  
 
   const inSufficientBalance =
-    data && sellAmount
-      ? parseUnits(sellAmount, sellTokenDecimals) > data.value
+    balanceData && sellAmount
+      ? parseUnits(sellAmount, sellTokenDecimals) > balanceData.value
       : true;
 
-  // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
-  console.log('price ' + JSON.stringify(price));
-  console.log('taker ' + JSON.stringify(taker));
-  console.log('activeAccount ' + JSON.stringify(activeAccount));
+
   return (
     <div>
       <header
@@ -275,8 +311,7 @@ export default function PriceView({
         <a href="https://0x.org/" target="_blank" rel="noopener noreferrer">
           <Image src={ZeroExLogo} alt="Icon" width={50} height={50} />
         </a>
-        <ConnectButton client={client} chain={ethereum} />
-
+        <ConnectButton client={client} chain={ethereum} chains={[ethereum, polygon]} />
       </header>
 
       <div className="container mx-auto p-10">
@@ -291,9 +326,7 @@ export default function PriceView({
           </u>{" "}
           and{" "}
           <u className="underline">
-            <a href="https://github.com/0xProject/0x-examples/tree/main">
-              Code
-            </a>
+            <a href="https://github.com/0xProject/0x-examples/tree/main">Code</a>
           </u>{" "}
           to build your own
         </p>
@@ -307,9 +340,9 @@ export default function PriceView({
             <Image
               alt={sellToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI}
-              width={9}
-              height={9}
+              src={tokensBySymbol[sellToken]?.logoURI}
+              width={36}
+              height={36}
             />
 
             <div className="h-14 sm:w-full sm:mr-2">
@@ -320,8 +353,7 @@ export default function PriceView({
                 className="mr-2 w-50 sm:w-full h-9 rounded-md"
                 onChange={handleSellTokenChange}
               >
-                {/* <option value="">--Choose a token--</option> */}
-                {MAINNET_TOKENS.map((token) => {
+                {tokenOptions.map((token) => {
                   return (
                     <option
                       key={token.address}
@@ -346,6 +378,14 @@ export default function PriceView({
               }}
             />
           </section>
+
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-4 mb-4"
+            onClick={swapTokens}
+          >
+            Swap Tokens
+          </button>
+
           <label htmlFor="buy" className="text-gray-300 mb-2 mr-2">
             Buy
           </label>
@@ -354,9 +394,9 @@ export default function PriceView({
             <Image
               alt={buyToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI}
-              width={9}
-              height={9}
+              src={tokensBySymbol[buyToken]?.logoURI}
+              width={36}
+              height={36}
             />
             <select
               name="buy-token-select"
@@ -365,8 +405,7 @@ export default function PriceView({
               className="mr-2 w-50 sm:w-full h-9 rounded-md"
               onChange={(e) => handleBuyTokenChange(e)}
             >
-              {/* <option value="">--Choose a token--</option> */}
-              {MAINNET_TOKENS.map((token) => {
+              {tokenOptions.map((token) => {
                 return (
                   <option
                     key={token.address}
@@ -394,32 +433,30 @@ export default function PriceView({
 
           {/* Affiliate Fee Display */}
           <div className="text-slate-400">
-
             {price?.fees?.integratorFee?.amount ? (
               "Affiliate Fee: " +
               Number(
                 formatUnits(
                   BigInt(price.fees.integratorFee.amount),
-                  MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
+                  tokensBySymbol[buyToken].decimals
                 )
               ) +
               " " +
-              MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol)
-              : null}
-
+              tokensBySymbol[buyToken].symbol
+            ) : null}
           </div>
 
           {/* Tax Information Display */}
           <div className="text-slate-400">
             {buyTokenTax.buyTaxBps !== "0" && (
               <p>
-                {MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol +
+                {tokensBySymbol[buyToken].symbol +
                   ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}
               </p>
             )}
             {sellTokenTax.sellTaxBps !== "0" && (
               <p>
-                {MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol +
+                {tokensBySymbol[sellToken].symbol +
                   ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}
               </p>
             )}
@@ -436,6 +473,7 @@ export default function PriceView({
             disabled={inSufficientBalance}
             price={price}
             parsedSellAmount={parsedSellAmount}
+            chainId={chainId}
           />
         ) : (
           <ConnectButton client={client} />
@@ -451,6 +489,7 @@ export default function PriceView({
     disabled,
     price,
     parsedSellAmount,
+    chainId,
   }: {
     taker: Address;
     onClick: () => void;
@@ -458,6 +497,7 @@ export default function PriceView({
     disabled?: boolean;
     price: any;
     parsedSellAmount: string;
+    chainId: number;
   }) {
     const spender = price?.issues?.allowance?.spender;
 
@@ -465,14 +505,14 @@ export default function PriceView({
     const { data: allowance, refetch } = useReadContract({
       address: sellTokenAddress,
       abi: erc20Abi,
-      functionName: 'allowance',
+      functionName: "allowance",
       args: [taker, spender],
+      chainId: chainId,
     });
-
+    console.log("disabled", disabled);
     // Determine if approval is needed
     const needsApproval =
       allowance && BigInt(allowance.toString()) < BigInt(parsedSellAmount);
-
 
     // Write contract
     const {
@@ -483,19 +523,18 @@ export default function PriceView({
       isSuccess,
     } = useWriteContract();
 
-    // Use useEffect to react to success
     useEffect(() => {
       if (isSuccess) {
         refetch(); // Refetch allowance after approval
       }
     }, [isSuccess, refetch]);
 
-    // Determine loading state
-    const isWriting = status === 'pending';
+    const isWriting = status === "pending";
 
     // Wait for transaction receipt
     const { data: txReceipt, isLoading: isWaiting } = useWaitForTransactionReceipt({
       hash: writeData,
+      chainId: chainId,
     });
 
     if (!price || !spender) {
@@ -507,7 +546,7 @@ export default function PriceView({
           onClick={onClick}
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
         >
-          {disabled ? 'Insufficient Balance' : 'Review Trade'}
+          {disabled ? "Insufficient Balance" : "Review Trade"}
         </button>
       );
     }
@@ -527,7 +566,7 @@ export default function PriceView({
           }
           className="bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
         >
-          {isWriting || isWaiting ? 'Approving...' : 'Approve'}
+          {isWriting || isWaiting ? "Approving..." : "Approve"}
         </button>
       );
     }
@@ -539,13 +578,8 @@ export default function PriceView({
         onClick={onClick}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
-        {disabled ? 'Insufficient Balance' : 'Review Trade'}
+        {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
     );
   }
-
-
-
-
-
 }

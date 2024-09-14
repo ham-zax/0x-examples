@@ -2,6 +2,7 @@ import { Address } from "thirdweb/utils";
 
 
 export const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+export const NATIVE_TOKEN_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 export const MAGIC_CALLDATA_STRING = "f".repeat(130); // used when signing the eip712 message
 
@@ -55,10 +56,10 @@ export const MAINNET_TOKENS: Token[] = [
 export const POLYGON_TOKENS: Token[] = [
   {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     
@@ -134,12 +135,12 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
   },
 };
 export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
-  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
+  [NATIVE_TOKEN_ADDRESS]: {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
   },
@@ -158,10 +159,10 @@ export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
 {
   matic: {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
     

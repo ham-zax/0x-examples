@@ -100,7 +100,7 @@ export default function QuoteView({
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
-
+console.log("sellTokenInfo from quote", sellTokenInfo);
   return (
     <div className="p-3 mx-auto max-w-screen-sm ">
       <form>
@@ -108,16 +108,16 @@ export default function QuoteView({
           <div className="text-xl mb-2 text-white">You pay</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <Image
-              alt={sellTokenInfo(chainId).symbol}
+              alt={sellTokenInfo(chainId)?.symbol || "Token"}
               className="h-9 w-9 mr-2 rounded-md"
               src={sellTokenInfo(chainId || 1)?.logoURI}
               width={9}
               height={9}
             />
             <span>
-              {formatUnits(quote.sellAmount, sellTokenInfo(chainId).decimals)}
+              {formatUnits(quote.sellAmount, sellTokenInfo(chainId)?.decimals)}
             </span>
-            <div className="ml-2">{sellTokenInfo(chainId).symbol}</div>
+            <div className="ml-2">{sellTokenInfo(chainId)?.symbol}</div>
           </div>
         </div>
 
@@ -126,17 +126,17 @@ export default function QuoteView({
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <img
               alt={
-                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].symbol
+                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()]?.symbol
               }
               className="h-9 w-9 mr-2 rounded-md"
               src={
-                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].logoURI
+                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()]?.logoURI
               }
             />
             <span>
-              {formatUnits(quote.buyAmount, buyTokenInfo(chainId).decimals)}
+              {formatUnits(quote.buyAmount, buyTokenInfo(chainId)?.decimals)}
             </span>
-            <div className="ml-2">{buyTokenInfo(chainId).symbol}</div>
+            <div className="ml-2">{buyTokenInfo(chainId)?.symbol}</div>
           </div>
         </div>
 
@@ -150,11 +150,11 @@ export default function QuoteView({
                 Number(
                   formatUnits(
                     BigInt(quote.fees.integratorFee.amount),
-                    buyTokenInfo(chainId).decimals
+                    buyTokenInfo(chainId)?.decimals
                   )
                 ) +
                 " " +
-                buyTokenInfo(chainId).symbol
+                buyTokenInfo(chainId)?.symbol
               : null}
           </div>
           {/* Tax Information Display */}
@@ -162,7 +162,7 @@ export default function QuoteView({
             {quote.tokenMetadata.buyToken.buyTaxBps &&
               quote.tokenMetadata.buyToken.buyTaxBps !== "0" && (
                 <p>
-                  {buyTokenInfo(chainId).symbol +
+                  {buyTokenInfo(chainId)?.symbol +
                     ` Buy Tax: ${formatTax(
                       quote.tokenMetadata.buyToken.buyTaxBps
                     )}%`}
@@ -171,7 +171,7 @@ export default function QuoteView({
             {quote.tokenMetadata.sellToken.sellTaxBps &&
               quote.tokenMetadata.sellToken.sellTaxBps !== "0" && (
                 <p>
-                  {sellTokenInfo(chainId).symbol +
+                  {sellTokenInfo(chainId)?.symbol +
                     ` Sell Tax: ${formatTax(
                       quote.tokenMetadata.sellToken.sellTaxBps
                     )}%`}
