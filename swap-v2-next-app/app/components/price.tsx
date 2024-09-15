@@ -10,6 +10,7 @@ import {
   FEE_RECIPIENT,
   BNB_TOKENS_BY_SYMBOL,
   BNB_TOKENS,
+  MAX_ALLOWANCE,
 } from "../../src/constants";
 import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
@@ -39,10 +40,21 @@ export const DEFAULT_BUY_TOKEN = (chainId: number) => {
     return "pol";
   }
   else if (chainId === 56) {
+    return "bnb";
+  }
+  return "weth";
+};
+export const DEFAULT_SELL_TOKEN = (chainId: number) => {
+  if (chainId === 1) {
+    return "usdc";
+  } else if (chainId === 137) {
+    return "usdc";
+  }
+  else if (chainId === 56) {
     return "usdt";
   }
-  return "usdc";
-};
+  return "usdc";  
+}
 
 export default function PriceView({
   price,
@@ -72,10 +84,12 @@ export default function PriceView({
   };
   const [sellToken, setSellToken] = useState(() => {
     const initialTokens = tokensByChain(chainId);
+    console.log("initialTokens sellToken", initialTokens);
     return Object.keys(initialTokens)[0] || "weth";
   });
   const [buyToken, setBuyToken] = useState(() => {
     const initialTokens = tokensByChain(chainId);
+    console.log("initialTokens buyToken", initialTokens);
     return Object.keys(initialTokens)[1] || "usdc";
   });
   const [sellAmount, setSellAmount] = useState("");
@@ -91,10 +105,8 @@ export default function PriceView({
     sellTaxBps: "0",
   });
 
-  const tokenOptions =
-    chainId === 137 ? POLYGON_TOKENS : chainId === 56 ? BNB_TOKENS : MAINNET_TOKENS;
-  const tokensBySymbol =
-    chainId === 137 ? POLYGON_TOKENS_BY_SYMBOL : chainId === 56 ? BNB_TOKENS_BY_SYMBOL : MAINNET_TOKENS_BY_SYMBOL;
+  const tokensBySymbol = tokensByChain(chainId);
+  const tokenOptions = Object.values(tokensBySymbol);
 
   const tokenList = tokensByChain(chainId);
   const sellTokenObject = tokenList[sellToken] || tokenList[DEFAULT_BUY_TOKEN(chainId)];
@@ -137,7 +149,13 @@ export default function PriceView({
   };
 
   const handleBuyTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setBuyToken(e.target.value);
+    const newBuyToken = e.target.value;
+    if (tokensBySymbol[newBuyToken]) {
+      setBuyToken(newBuyToken);
+    } else {
+      console.error(`Token ${newBuyToken} not found in tokensBySymbol`);
+      // Optionally set a default token or show an error message to the user
+    }
   };
 
   const swapTokens = () => {
@@ -173,7 +191,7 @@ export default function PriceView({
 
   useEffect(() => {
     setSellToken(DEFAULT_BUY_TOKEN(chainId));
-    setBuyToken("usdc");
+    setBuyToken(DEFAULT_SELL_TOKEN(chainId));
   }, [chainId]);
 
   // Fetch price data and set the buyAmount whenever the sellAmount changes
@@ -358,7 +376,11 @@ export default function PriceView({
           {/* Affiliate Fee Display */}
           {price?.fees?.integratorFee?.amount && (
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Affiliate Fee: {Number(toTokens(BigInt(price.fees.integratorFee.amount), tokensBySymbol[buyToken].decimals))} {tokensBySymbol[buyToken].symbol}
+              Affiliate Fee: {
+                tokensBySymbol[buyToken] 
+                  ? `${Number(toTokens(BigInt(price.fees.integratorFee.amount), tokensBySymbol[buyToken].decimals))} ${tokensBySymbol[buyToken].symbol}`
+                  : 'Unable to display fee'
+              }
             </div>
           )}
 
@@ -460,15 +482,19 @@ export default function PriceView({
       spender: spender,
     });
 
-    const { mutate: sendTransaction, isPending: isApproving } = useSendTransaction();
+    const { mutate: sendTransaction, isPending: isApproving } = useSendTransaction({
+      payModal: {
+        buyWithFiat: false,
+      },
+    });
 
     const handleApprove = async () => {
       const transaction = approve({
         contract,
         spender,
-        amount: balanceData?.value ? toTokens(balanceData.value, sellTokenDecimals) : "0",
+        amountWei: balanceData?.value ? (balanceData.value): MAX_ALLOWANCE,
       });
-
+  
       try {
         await sendTransaction(transaction);
       } catch (error) {
@@ -476,6 +502,21 @@ export default function PriceView({
       }
     };
 
+
+    if (!hasAllowanceIssue) {
+      return (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onClick}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+        >
+          {disabled ? "Insufficient Balance" : "Review Trade"}
+        </button>
+      );
+    }
+
+  
     if (!hasAllowanceIssue) {
       return (
         <button
@@ -492,13 +533,14 @@ export default function PriceView({
     if (isAllowanceLoading) {
       return <div>Checking allowance...</div>;
     }
-
-    if (allowanceData === undefined || allowanceData === BigInt(0)) {
+  
+    if (sellTokenAddress !== NATIVE_TOKEN_ADDRESS && price?.issues?.allowance !== null && allowanceData === 0n) {
       return (
         <button
           type="button"
           onClick={handleApprove}
-          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
+          disabled={isApproving}
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
         >
           {isApproving ? "Approving..." : "Approve"}
         </button>
