@@ -12,7 +12,6 @@ import { createThirdwebClient, defineChain } from "thirdweb";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { ThirdwebProvider } from "thirdweb/react";
 
-const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string;
 
 
 const config = createConfig({
