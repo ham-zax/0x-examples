@@ -56,13 +56,13 @@ export const MAINNET_TOKENS: Token[] = [
 export const POLYGON_TOKENS: Token[] = [
   {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
     address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
-    
+
   },
   {
     chainId: 137,
@@ -72,6 +72,28 @@ export const POLYGON_TOKENS: Token[] = [
     address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+];
+
+export const BNB_TOKENS: Token[] = [
+  {
+    chainId: 56,
+    name: "BNB",
+    symbol: "BNB",
+    decimals: 8,
+    address: NATIVE_TOKEN_ADDRESS,
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/bnb.svg",
+
+  },
+  {
+    chainId: 56,
+    name: "USDT Coin",
+    symbol: "USDT",
+    decimals: 6,
+    address: "0x55d398326f99059ff775485246999027b3197955",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdt.svg",
   },
 ];
 
@@ -137,8 +159,8 @@ export const MAINNET_TOKENS_BY_ADDRESS: Record<string, Token> = {
 export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
   [NATIVE_TOKEN_ADDRESS]: {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
     address: NATIVE_TOKEN_ADDRESS,
     logoURI:
@@ -154,18 +176,38 @@ export const POLYGON_TOKENS_BY_ADDRESS: Record<string, Token> = {
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
   },
 };
+export const BNB_TOKENS_BY_ADDRESS: Record<string, Token> = {
+  [NATIVE_TOKEN_ADDRESS]: {
+    chainId: 56,
+    name: "POL",
+    symbol: "POL",
+    decimals: 8,
+    address: NATIVE_TOKEN_ADDRESS,
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/bnb.svg",
+  },
+  "0x55d398326f99059ff775485246999027b3197955": {
+    chainId: 56,
+    name: "USDT Coin",
+    symbol: "USDT",
+    decimals: 6,
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdt.svg",
+  },
+};
 
-export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
+export const POLYGON_TOKENS_BY_SYMBOL: Record<string, Token> =
 {
-  matic: {
+  pol: {
     chainId: 137,
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18,
     address: NATIVE_TOKEN_ADDRESS,
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/matic.svg",
-    
+
   },
   usdc: {
     chainId: 137,
@@ -175,5 +217,27 @@ export const POLYGON_TOKEN_BY_SYMBOL: Record<string, Token> =
     address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
     logoURI:
       "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdc.svg",
+  },
+}
+export const BNB_TOKENS_BY_SYMBOL: Record<string, Token> =
+{
+  bnb: {
+    chainId: 56,
+    name: "BNB",
+    symbol: "BNB",
+    decimals: 8,
+    address: NATIVE_TOKEN_ADDRESS,
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/bnb.svg",
+
+  },
+  usdc: {
+    chainId: 56,
+    name: "USDT Coin",
+    symbol: "USDT",
+    decimals: 6,
+    address: "0x55d398326f99059ff775485246999027b3197955",
+    logoURI:
+      "https://raw.githubusercontent.com/maticnetwork/polygon-token-assets/main/assets/tokenAssets/usdt.svg",
   },
 }

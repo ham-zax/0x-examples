@@ -21,7 +21,7 @@ import {
 } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { createThirdwebClient } from "thirdweb";
+import { createThirdwebClient, defineChain } from "thirdweb";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { walletConnect } from "wagmi/connectors";
 import { ThirdwebProvider } from "thirdweb/react";
@@ -55,17 +55,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>
             <ThirdwebProvider>
               {children}
             </ThirdwebProvider>
-          </RainbowKitProvider>{" "}
         </QueryClientProvider>
       </WagmiProvider>
     </div>
   );
 }
-
+export const BNB_SMART_CHAIN = /*@__PURE__*/ defineChain({
+  id: 56,
+  name: "BNB Smart Chain Mainnet",
+  nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+  blockExplorers: [
+    {
+      name: "bscscan",
+      url: "https://bscscan.com",
+      apiUrl: "https://api.bscscan.com/api",
+    },
+  ],
+  rpc: "https://56.rpc.thirdweb.com/xXtC_IK0yrz-wrPC9pDu9TtF0MAyG6OXixHXBNccACglHjxO8cUDjCPzVbkmI_Zk1BqMp4vgOCl2bIxfDwCWxA",
+});
 const clientId = createThirdwebClient({
   secretKey: "xXtC_IK0yrz-wrPC9pDu9TtF0MAyG6OXixHXBNccACglHjxO8cUDjCPzVbkmI_Zk1BqMp4vgOCl2bIxfDwCWxA",
 });

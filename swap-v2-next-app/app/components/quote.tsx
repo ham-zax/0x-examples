@@ -13,6 +13,8 @@ import {
   MAINNET_TOKENS_BY_ADDRESS,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
+  POLYGON_TOKENS_BY_ADDRESS,
+  BNB_TOKENS_BY_ADDRESS,
 } from "../../src/constants";
 import Image from "next/image";
 import qs from "qs";
@@ -36,12 +38,24 @@ export default function QuoteView({
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
     }
+    else if (chainId === 56) {
+      return BNB_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
+    }
+    else if (chainId === 137) {
+      return POLYGON_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
+    }
     return MAINNET_TOKENS_BY_ADDRESS[price.sellToken.toLowerCase()];
   };
 
   const buyTokenInfo = (chainId: number) => {
     if (chainId === 1) {
       return MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
+    }
+    else if (chainId === 56) {
+      return BNB_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
+    }
+    else if (chainId === 137) {
+      return POLYGON_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
     }
     return MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()];
   };
@@ -108,7 +122,7 @@ console.log("sellTokenInfo from quote", sellTokenInfo);
           <div className="text-xl mb-2 text-white">You pay</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <Image
-              alt={sellTokenInfo(chainId)?.symbol || "Token"}
+              alt={"Token"}
               className="h-9 w-9 mr-2 rounded-md"
               src={sellTokenInfo(chainId || 1)?.logoURI}
               width={9}
@@ -126,7 +140,7 @@ console.log("sellTokenInfo from quote", sellTokenInfo);
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <img
               alt={
-                MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].symbol
+                "token"
               }
               className="h-9 w-9 mr-2 rounded-md"
               src={
