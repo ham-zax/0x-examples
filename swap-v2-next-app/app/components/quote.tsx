@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatUnits } from "ethers";
 import {
   useSignTypedData,
@@ -58,13 +58,24 @@ export default function QuoteView({
     sendTransaction,
   } = useSendTransaction();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    data: receipt
+  } = useWaitForTransactionReceipt({
+    hash
+  });
+  useEffect(() => {
+    console.log("Transaction hash:", hash);
+    console.log("Is pending:", isPending);
+    console.log("Is confirming:", isConfirming);
+    console.log("Is confirmed:", isConfirmed);
+  }, [hash, isPending, isConfirming, isConfirmed]);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(true);
 
   useEffect(() => {
     const fetchQuote = async () => {
+      setIsQuoteLoading(true);
       const params = {
         chainId,
         sellToken: price.sellToken,
@@ -76,20 +87,21 @@ export default function QuoteView({
         swapFeeToken: price.buyToken,
         tradeSurplusRecipient: FEE_RECIPIENT,
       };
-
       try {
         const response = await fetch(`/api/quote?${qs.stringify(params)}`);
         const data = await response.json();
         setQuote(data);
       } catch (error) {
         console.error("Error fetching quote:", error);
+      } finally {
+        setIsQuoteLoading(false);
       }
     };
 
     fetchQuote();
   }, [chainId, price, taker, setQuote]);
 
-  if (!quote || !price) {
+  if (isQuoteLoading || !quote || !price) {
     return <div>Getting best quote...</div>;
   }
 
@@ -145,14 +157,19 @@ export default function QuoteView({
 
       <button
         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-        disabled={isPending}
+        disabled={isQuoteLoading || isPending}
         onClick={handlePlaceOrder}
       >
-        {isPending ? "Confirming..." : "Place Order"}
+        {isPending ? "Confirming..." : isQuoteLoading ? "Loading Quote..." : "Place Order"}
       </button>
 
-      <TransactionStatus isConfirming={isConfirming} isConfirmed={isConfirmed} hash={hash} error={error} />
-    </div>
+      <TransactionStatus
+        isPending={isPending}
+        isConfirming={isConfirming}
+        isConfirmed={isConfirmed}
+        hash={hash}
+        error={error}
+      />    </div>
   );
 }
 
@@ -175,10 +192,10 @@ function TokenInfoCard({ title, amount, tokenInfo }: { title: string; amount: st
   );
 }
 
-function FeeAndTaxInfo({ quote, buyTokenInfo, sellTokenInfo }: { 
-  quote: QuoteResponse, 
-  buyTokenInfo: { symbol: string, decimals: number }, 
-  sellTokenInfo: { symbol: string } 
+function FeeAndTaxInfo({ quote, buyTokenInfo, sellTokenInfo }: {
+  quote: QuoteResponse,
+  buyTokenInfo: { symbol: string, decimals: number },
+  sellTokenInfo: { symbol: string }
 }) {
   return (
     <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-sm mb-3">
@@ -201,17 +218,24 @@ function FeeAndTaxInfo({ quote, buyTokenInfo, sellTokenInfo }: {
   );
 }
 
-function TransactionStatus({ 
-  isConfirming, 
-  isConfirmed, 
-  hash, 
-  error 
-}: { 
-  isConfirming: boolean; 
-  isConfirmed: boolean; 
-  hash: string | undefined; 
-  error: Error | null; 
+function TransactionStatus({
+  isPending,
+  isConfirming,
+  isConfirmed,
+  hash,
+  error
+}: {
+  isPending: boolean;
+  isConfirming: boolean;
+  isConfirmed: boolean;
+  hash: string | undefined;
+  error: Error | null;
 }) {
+  console.log("TransactionStatus render:", { isPending, isConfirming, isConfirmed, hash, error });
+
+  if (isPending) {
+    return <div className="text-center mt-4">Transaction is pending...</div>;
+  }
   if (isConfirming) {
     return <div className="text-center mt-4">Waiting for confirmation ⏳ ...</div>;
   }
@@ -228,5 +252,5 @@ function TransactionStatus({
   if (error) {
     return <div className="text-red-500 mt-4">Error: {(error as BaseError).shortMessage || error.message}</div>;
   }
-  return null;
+  return <div className="text-center mt-4">Ready to submit transaction</div>;
 }

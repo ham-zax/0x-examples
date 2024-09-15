@@ -2,48 +2,27 @@
 
 import * as React from "react";
 import {
-  RainbowKitProvider,
-  getDefaultWallets,
-  getDefaultConfig,
-} from "@rainbow-me/rainbowkit";
-import {
-  argentWallet,
-  trustWallet,
-  ledgerWallet,
-} from "@rainbow-me/rainbowkit/wallets";
-import {
-  arbitrum,
-  base,
+  bsc,
   mainnet,
-  optimism,
   polygon,
-  sepolia,
 } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
+import { createConfig, http, WagmiProvider } from "wagmi";
 import { createThirdwebClient, defineChain } from "thirdweb";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
-import { walletConnect } from "wagmi/connectors";
 import { ThirdwebProvider } from "thirdweb/react";
-
-const { wallets } = getDefaultWallets();
 
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string;
 
-const config = getDefaultConfig({
-  appName: "0x Token Swap dApp",
-  projectId,
-  wallets: [
-    ...wallets,
-    {
-      groupName: "Other",
-      wallets: [argentWallet, trustWallet, ledgerWallet],
-    },
-  ],
-  chains: [mainnet],
-  ssr: true,
-});
 
+const config = createConfig({
+  chains: [mainnet, polygon, bsc],
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+    [bsc.id]: http(),
+  },
+});
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -53,13 +32,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         padding: "20px",
       }}
     >
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-            <ThirdwebProvider>
-              {children}
-            </ThirdwebProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
+      <ThirdwebProvider>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </WagmiProvider>
+      </ThirdwebProvider>
     </div>
   );
 }

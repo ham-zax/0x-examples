@@ -26,10 +26,10 @@ import {
   useNetworkSwitcherModal,
   useSwitchActiveWalletChain,
 } from "thirdweb/react";
-import { BNB_SMART_CHAIN, client } from "../providers";
+import { client } from "../providers";
 import { getContract, NATIVE_TOKEN_ADDRESS, toTokens, toUnits } from "thirdweb";
 import { approve, allowance } from "thirdweb/extensions/erc20";
-import { base, ethereum, polygon, sepolia } from "thirdweb/chains";
+import { base, bsc, ethereum, polygon, sepolia } from "thirdweb/chains";
 export function isNativeTokenAddress(address: Address) {
   return address.toLowerCase() === NATIVE_TOKEN_ADDRESS;
 }
@@ -276,7 +276,7 @@ export default function PriceView({
         </a>
         <div className="flex items-center space-x-4">
           <NetworkSwitcher activeChain={activeChain} />
-          <ConnectButton client={client} chains={[ethereum, polygon, BNB_SMART_CHAIN]} />
+          <ConnectButton client={client} chains={[ethereum, polygon, bsc]} />
         </div>
       </header>
 
@@ -434,8 +434,8 @@ export default function PriceView({
               client,
               theme: 'dark',
               sections: [
-                { label: 'Recently used', chains: [ethereum, polygon,BNB_SMART_CHAIN] },
-                { label: 'Popular', chains: [base, ethereum, polygon,BNB_SMART_CHAIN] },
+                { label: 'Recently used', chains: [ethereum, polygon,bsc] },
+                { label: 'Popular', chains: [base, ethereum, polygon,bsc] },
               ]
             }
           )}

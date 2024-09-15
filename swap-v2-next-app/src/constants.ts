@@ -42,7 +42,8 @@ export const MAINNET_TOKENS = createTokens([
 
 export const POLYGON_TOKENS = createTokens([
   [137, "POL", "POL", 18, NATIVE_TOKEN_ADDRESS, `${logoBase}matic.svg`],
-  [137, "USD Coin", "USDC", 6, "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", `${logoBase}usdc.svg`]
+  [137, "USD Coin", "USDC", 6, "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", `${logoBase}usdc.svg`],
+  [137, "USDT Coin", "USDT", 6, "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", `${logoBase}usdt.svg`]
 ]);
 
 export const BNB_TOKENS = createTokens([
