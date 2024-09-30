@@ -1,38 +1,23 @@
 import { useEffect, useState, ChangeEvent } from "react";
-import { toUnits, toTokens, waitForReceipt } from "thirdweb";
+import { toUnits, toTokens } from "thirdweb";
 import {
   useActiveAccount,
   useActiveWalletChain,
-  useEstimateGas,
-  useReadContract,
-  useSendTransaction,
   useWalletBalance,
-  useWaitForReceipt,
-  ConnectButton
 } from "thirdweb/react";
-import {
-  getContract,
-  readContract,
-  prepareContractCall,
-} from "thirdweb";
 import { Address } from "viem";
 import {
-  PERMIT2_ADDRESS,
   MAINNET_TOKENS,
   MAINNET_TOKENS_BY_SYMBOL,
   MAINNET_EXCHANGE_PROXY,
-  MAX_ALLOWANCE,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
   POLYGON_TOKEN_BY_SYMBOL,
   POLYGON_TOKENS,
 } from "../../src/constants";
-import { permit2Abi } from "../../src/utils/permit2abi";
-import ZeroExLogo from "../../src/images/white-0x-logo.png";
 import Image from "next/image";
 import qs from "qs";
 import { client } from "../providers";
-import { WaitForReceiptOptions } from "thirdweb/transaction";
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
@@ -54,7 +39,6 @@ export default function PriceView({
   setFinalize: (finalize: boolean) => void;
   chainId: number;
   setQuote: (quote: any) => void; // Add this prop type
-
 }) {
   const [sellToken, setSellToken] = useState("weth");
   const [buyToken, setBuyToken] = useState("usdc");
@@ -145,7 +129,7 @@ export default function PriceView({
     balance && sellAmount
       ? toUnits(sellAmount, sellTokenDecimals) > balance.value
       : true;
-  // Fetch price data and set the buyAmount whenever the sellAmount changes
+
   useEffect(() => {
     const params = {
       chainId: chainId,
@@ -199,22 +183,15 @@ export default function PriceView({
     FEE_RECIPIENT,
     AFFILIATE_FEE,
   ]);
+
   const swapTokens = () => {
     const tempSellToken = sellToken;
     setSellToken(buyToken);
     setBuyToken(tempSellToken);
   };
-  // Hook for fetching balance information for specified token for a specific taker address
-  /*   const { data, isError, isLoading } = useBalance({
-      address: taker,
-      token: sellTokenObject?.address,
-    }); */
-
-  // console.log("taker sellToken balance: ", data);
 
   const tokenOptions = chainId === 137 ? POLYGON_TOKENS : MAINNET_TOKENS;
   const tokensBySymbol = chainId === 137 ? POLYGON_TOKEN_BY_SYMBOL : MAINNET_TOKENS_BY_SYMBOL;
-
 
   return (
     <div>
@@ -259,7 +236,6 @@ export default function PriceView({
                 className="mr-2 w-50 sm:w-full h-9 rounded-md"
                 onChange={handleSellTokenChange}
               >
-                {/* <option value="">--Choose a token--</option> */}
                 {tokenOptions.map((token) => {
                   return (
                     <option
@@ -363,7 +339,7 @@ export default function PriceView({
             price={price}
           />
         ) : (
-          <div>ConnectButton.Custom was here not needed fornow</div>
+          <div>ConnectButton.Custom was here not needed for now</div>
         )}
       </div>
     </div>
